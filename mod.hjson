@@ -1,0 +1,9 @@
+name: "v2logic"
+displayName: "v2logic"
+author: "ElectricGun"
+description: "Not intended for multiplayer"
+dependencies: ["message-block-commands"]
+version: "alpha 1.0"
+repo: ""
+hidden: true
+minGameVersion: "138"
