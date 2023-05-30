@@ -12,4 +12,4 @@ Converts video sequence to a Mindustry logic display animation <br> <br>
   
 ## Notes: 
 - If your animation is very crusty and choppy, you may need to decrease the compression treshold or artifically increase the hyperprocessor speed using Blocks.hyperProcessor.instructionsPerTick = (number, larger than 25) <br>
-- The processors will overrwite blocks in a roughly 42 block radius, only use this mod on disposable sandbox worlds, you can then save it as a scheme after
+- The processors will overwrite blocks in a roughly 42 block radius, only use this mod on disposable sandbox worlds, you can then save it as a scheme after
