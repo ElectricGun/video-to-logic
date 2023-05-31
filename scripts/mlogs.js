@@ -6,10 +6,13 @@ const mlogs = {
                   cell1 2 is finished status to prevent redrawing
             */
             "START:",
+
             "sensor enabled switch1 @enabled",
             "jump OFF equal enabled false",
             "set startTime @time",
+
             "HERE:",
+
             "op sub deltaTime @time startTime",
             "jump HERE lessThanEq deltaTime _PERIOD_",
             "set deltaTime 0",
@@ -19,7 +22,9 @@ const mlogs = {
             "write 0 cell1 2",
             "jump END lessThan frame _MAXFRAME_",
             "set frame 0",
+
             "END:",
+
             "end",
             "OFF:",
             "set frame 1",
@@ -33,7 +38,9 @@ const mlogs = {
         [
             "write 0 cell1 1",
             "write 1 cell1 2",
-            "_PREVLABEL_",
+
+            "_PREVLABEL_:",
+
             "read frame cell1 0",
             "read batch cell1 1",
             "read isFinished cell1 2",
@@ -45,7 +52,8 @@ const mlogs = {
         ].join("\n"),
     frameHead:
         [
-            "_PREVLABEL_",
+            "_PREVLABEL_:",
+
             "read frame cell1 0",
             "read batch cell1 1",
             "read isFinished cell1 2",
@@ -57,7 +65,8 @@ const mlogs = {
         ].join("\n"),
     frameWithin:
         [
-            "_PREVLABEL_",
+            "_PREVLABEL_:",
+
             "read frame cell1 0",
             "read batch cell1 1",
             "read isFinished cell1 2",
@@ -68,7 +77,8 @@ const mlogs = {
         ].join("\n"),
     frameEnd:
         [
-            "_PREVLABEL_",
+            "_PREVLABEL_:",
+
             "read frame cell1 0",
             "jump _NEXTLABEL_ notEqual frame _FRAME_"
             //    insert frame
