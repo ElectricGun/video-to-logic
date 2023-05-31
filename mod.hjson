@@ -1,7 +1,7 @@
 name: "v2logic"
-displayName: "v2logic"
+displayName: "Video to Logic"
 author: "ElectricGun"
-description: "Not intended for multiplayer"
+description: "PLEASE READ GITHUB PAGE README.MD FOR TUTORIAL ON HOW TO USE THIS"
 dependencies: ["message-block-commands"]
 version: "alpha 1.0"
 repo: ""
