@@ -10,6 +10,8 @@
             This slows down the animation to sync with graphics processors to reduce crust. Maybe not a good thing
             
         Theres still a bit of crust on keyframes
+        
+    Add option for world procs
 
     Optimise if i have to
 
