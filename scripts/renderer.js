@@ -1,5 +1,5 @@
 /*TODO:
-    Fix crusty and save space problem:
+    Fix crusty:
 
         -Dont draw single frames in parallel to reduce crust                                    DONE
         -Draw a frame only twice or a few times to prevent omega level crusting                 DONE
