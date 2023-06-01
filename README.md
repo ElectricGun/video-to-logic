@@ -1,4 +1,4 @@
-# sequence-to-mindustry-logic
+# sequence-to-logic
 Converts video sequence to a Mindustry logic display animation <br> <br>
 ## How to use:
 0. Use the video to sequence script to convert a video into a bunch of files <br>
@@ -8,8 +8,8 @@ Converts video sequence to a Mindustry logic display animation <br> <br>
 4. Exit out of the message block gui. <br>
 5. Wait, building the processors might take a while. This depends on your CPU and the size of the sequence <br>
 6. Exit the world and rejoin to refresh the processors <br>
-7. Activate the switch to play. <br> <br>
-  
+7. Activate the switch to play. <br> <br> <br>
 ## Notes: 
 - If your animation is very crusty and choppy, you may need to decrease the compression treshold or artifically increase the hyperprocessor speed using Blocks.hyperProcessor.instructionsPerTick = (number, larger than 25) <br>
 - The processors will overwrite blocks in a roughly 42 block radius, only use this mod on disposable sandbox worlds, you can then save it as a scheme after
+- Config file directory: data/config.hjson
