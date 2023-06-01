@@ -1,0 +1,1 @@
+debugMode: false    //outputs mlog to logs/mlogs.txt. Very slow, only enable for debugging
