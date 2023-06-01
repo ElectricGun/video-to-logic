@@ -7,7 +7,7 @@
             -Stop drawing if lock == 1
             -Only reset lock in clock
 
-            This slows down the animation to sync with graphics processor to reduce crust. Maybe not a good thing
+            This slows down the animation to sync with graphics processors to reduce crust. Maybe not a good thing
             
         Theres still a bit of crust on keyframes
 
