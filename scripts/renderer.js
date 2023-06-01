@@ -2,15 +2,24 @@
     Fix crusty and save space problem:
 
         -Dont draw single frames in parallel to reduce crust                                    DONE
-        -Draw a frame only twice or a few times to prevent omega level crusting
-        -Lock write to cell 0 in frame clock when a draw job is active. Jump if lock == 1, twice to prevent desync
-                    
+        -Draw a frame only twice or a few times to prevent omega level crusting                 DONE
+        -Lock write to cell 0 in frame clock when a draw job is active.                         DONE
+            -Stop drawing if lock == 1
+            -Only reset lock in clock
+
+            This slows down the animation to sync with graphics processor to reduce crust. Maybe not a good thing
+            
+        Theres still a bit of crust on keyframes
+
     Optimise if i have to
 
     Clean up code
+        -Use a tilemap instead of hardcoding positions of the control panel
 */
 
-const mlogCodes = require("mlogs")
+const config = JSON.parse(Jval.read(Vars.tree.get("data/config.hjson").readString()))
+
+const mlogCodes = require("v2logic/mlogs")
 
 const palette = [
     [217, 157, 115], [140, 127, 169], [235, 238, 245], [149, 171, 217], //copper, lead, metaglass, graphite
@@ -26,13 +35,13 @@ var queue = []
 
 function defineAnimation (name) {
     let animation = []
-    let totalBatches, data
-    let header = JSON.parse(Vars.tree.get("animations/" + name + "/" + "frame" + "config.json").readString())
+    let totalBatches, data, header
     try {
-    for (let i = 0;i < header.totalBatches; i++) {
-        data = JSON.parse(Vars.tree.get("animations/" + name + "/" + "frame" + i + ".json").readString())
-        animation.push(data)
-    }
+    header = JSON.parse(Vars.tree.get("animations/" + name + "/" + "frame" + "config.json").readString())
+        for (let i = 0;i < header.totalBatches; i++) {
+            data = JSON.parse(Vars.tree.get("animations/" + name + "/" + "frame" + i + ".json").readString())
+            animation.push(data)
+        }
         totalBatches = header.totalBatches;
     } catch (e) {
         print(e)
@@ -79,7 +88,6 @@ function placeProcessor(x, y, block, code, links) {
         } catch (e) {
             currProcessor.links.add(links)
         }
-
     }
 }
 
@@ -88,6 +96,7 @@ function dist(x0, y0, x1, y1) {
     return distance
 }
 
+/*
 function midpoint(x0, y0, x1, y1) {
     let midX = (x0 + x1) / 2
     let midY = (y0 + y1) / 2
@@ -108,10 +117,10 @@ function listCompare(list0, list1) {
             return false
         }
     }
-
     return true
 }
-  
+*/
+
 function render () {
 
     let animationInfo = queue[0]
@@ -135,12 +144,12 @@ function render () {
     let animation = animationData.animation
     let header = animationData.header
     let totalBatches = animationData.totalBatches
-    let compressionType = header.compressed
+    //let compressionType = header.compressed
     let isRaw = header.isRaw
     queue.splice(0, 1)
 
     try {
-        let nFrames = 0, second = 0, currFrame = 0
+        //let nFrames = 0, second = 0, currFrame = 0
         startTime = Time.millis()
         
         let totalFrames = 0
@@ -150,8 +159,8 @@ function render () {
         };
 
         print(animation[0].seq[0].slice(-1)[0].slice(-1))
-        let frameLength = animation[0].seq[0].slice(-1)[0][1]
-        let frameHeight = animation[0].seq[0].slice(-1)[0][2]
+        //let frameLength = animation[0].seq[0].slice(-1)[0][1]
+        //let frameHeight = animation[0].seq[0].slice(-1)[0][2]
 
         Vars.tree.get("logs/mlogs.txt").writeString(" ")
     
@@ -165,8 +174,6 @@ function render () {
                          new LogicBlock.LogicLink(startingPosition.x - 2, startingPosition.y + 4, "cell1", true),
                          new LogicBlock.LogicLink(startingPosition.x - 1, startingPosition.y + 4, "switch1", true)
                     ]
-        placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock.replace("_PERIOD_", (1 / animation[0].fps * step) * 1000)
-                                                                                                             .replace("_MAXFRAME_", totalFrames), mainLinks)
 
         //    Max lines per processor
         const maxLines = 1000
@@ -175,7 +182,7 @@ function render () {
         const frameLabel = "LABEL"
 
         //    Debug mode: logs text mlog output to mlogs.txt
-        const debugMode = true
+        const debugMode = config.debugMode
 
         //    Radius of the processor
         let processorRange = 42
@@ -200,9 +207,8 @@ function render () {
         let currDrawCalls = 0
         let processorCode = ""
         let offset = Vec2(0, 0)
-        let isOdd = false
         let column = 0
-        
+        let isOdd = false
         if (header.compressed == 1) {
 
             processorCode = ""
@@ -227,20 +233,21 @@ function render () {
                     let drawBuffer = drawBufferFactor / (currFrameLength / maxLines)
 
                     //    Define frame header
-                    if (frame != 0) {
+                    if (globalFrame != 1) {
                         processorCode += "drawflush display1" + "\n"
                         processorCode += mlogCodes.frameStart.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                              .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
                                                              .replace(/_BATCH_/g, frameProcessorBatchNumber)
+                                                             .replace(/_FINISHEDLABEL_/g, "FINISH" + processorFrame)
                                                              .replace(/_FRAME_/g, globalFrame) + "\n"
-                    lines += 8
+                    lines += 21 + 1
                     } else {
                         processorCode += "drawflush display1" + "\n"
                         processorCode += mlogCodes.frameHead.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                             .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
                                                             .replace(/_BATCH_/g, frameProcessorBatchNumber)
                                                             .replace(/_FRAME_/g, globalFrame) + "\n"
-                    lines += 6
+                    lines += 16 + 1
                     }
 
                     let prevColour = []
@@ -282,7 +289,7 @@ function render () {
                         }
 
                         //    Flush mlog to processor
-                        if (lines + 17 > maxLines) {
+                        if (lines + 5 + 22 + /*extra leeway for error*/ 0 > maxLines) {
                             currProcessor += 1
                             lines = 0
                             currDrawCalls = 0
@@ -295,12 +302,12 @@ function render () {
                             
                             
                             //    Define processor location
+                            
                             while (dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x, startingPosition.y) > processorRange ||
                                    dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x - 2, startingPosition.y + 4) > processorRange ||
                                    (startingPoint.x + offset.x > startingPosition.x - 4 && startingPoint.x + offset.x < startingPosition.x + 6) &&
                                    (startingPoint.y + offset.y > startingPosition.y - 3 && startingPoint.y + offset.y < startingPosition.y + 7)
                                    ) {
-
                             
                                 isOdd = column % 2 == 0
                                 offset.y += 3
@@ -313,15 +320,13 @@ function render () {
                                         offset.x -= 1
                                     }
                                 }
-                            
-
 
                                 if (offset.x + 3 > processorRange * 4) {
                                     print("Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
                                     return
                                 }
                             }
-
+                            
                             //    Place processor
                             let cryoOffset = isOdd ? -2: 2
                             processorCode = processorCode.replace(new RegExp("LABEL" + (processorFrame + 1), "g"), "LABEL0")
@@ -332,7 +337,7 @@ function render () {
                             
                             if (debugMode) {
                                 let prevDebug = Vars.tree.get("logs/mlogs.txt").readString() + "\n"
-                                Vars.tree.get("logs/mlogs.txt").writeString(prevDebug + "CURRPROCESSOR " + currProcessor + "\n" + processorCode)
+                                Vars.tree.get("logs/mlogs.txt").writeString(prevDebug + "CURRPROCESSOR " + currProcessor + " " + lines + " " + globalFrame + "\n" + processorCode)
                             }
                             
 
@@ -347,7 +352,7 @@ function render () {
                             processorCode += "write " + frameProcessorBatchNumber + " cell1 1" + "\n"
                             processorCode += "draw color " + rgb[0] + " " + rgb[1] + " " + rgb[2] + " 255" + "\n"
             
-                            lines += 8
+                            lines += 16 + 2
                             offset.y += 3
                         }
 
@@ -359,21 +364,58 @@ function render () {
                 if (i == totalBatches - 1) {
 
                     //    Place final processor
-                    /*
-                    processorCode = processorCode.replace("LABEL" + (processorFrame), "LABEL0")
+
+                    while (dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x, startingPosition.y) > processorRange ||
+                            dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x - 2, startingPosition.y + 4) > processorRange ||
+                            (startingPoint.x + offset.x > startingPosition.x - 4 && startingPoint.x + offset.x < startingPosition.x + 6) &&
+                            (startingPoint.y + offset.y > startingPosition.y - 3 && startingPoint.y + offset.y < startingPosition.y + 7)
+                            ) {
+                    
+                        isOdd = column % 2 == 0
+                        offset.y += 3
+
+                        if (offset.y + 3 > processorRange * 4) {
+                            offset.y = 0
+                            offset.x += 4
+                            column += 1
+                            if (isOdd) {
+                                offset.x -= 1
+                            }
+                        }
+
+                        if (offset.x + 3 > processorRange * 4) {
+                            print("Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
+                            return
+                        }
+                    }
+                    processorCode += mlogCodes.tail
+                    processorCode = processorCode.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
+                                                 .replace(/_FINISHEDLABEL_/g, "FINISH" + processorFrame)
+                                                 .replace(new RegExp("LABEL" + processorFrame, "g"), "LABEL0") + "\n"
+
+                    if (debugMode) {
+                        let prevDebug = Vars.tree.get("logs/mlogs.txt").readString() + "\n"
+                        Vars.tree.get("logs/mlogs.txt").writeString(prevDebug + "CURRPROCESSOR " + currProcessor + " " + lines + " " + globalFrame + "\n" + processorCode)
+                    }
+
                     placeBlock(startingPoint.x + offset.x + 2, startingPoint.y + offset.y, Blocks.liquidSource, Liquids.cryofluid)
                     placeProcessor(startingPoint.x + offset.x, startingPoint.y + offset.y, Blocks.hyperProcessor, processorCode, mainLinks.slice(0, 2))
-                    */
+
+                    //    Place clock processor
+                    placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
+                    .replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
+                    .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                 }
             }
         }
     } catch (error) {
+        print(error.stack)
         print(error);
     }
 }
 
 
-
+/*
 function countdown (seconds) {
 
     for (let i = 0; i < seconds; i++) {
@@ -381,9 +423,9 @@ function countdown (seconds) {
         Packages.arc.util.Time.run(60 * i, () => {print(counter + 1)})
     }
 }
+*/
 
 module.exports = {
-countdown: countdown,
 render: render,
 addToQueue: addToQueue,
 defineAnimation: defineAnimation}
