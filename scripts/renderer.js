@@ -296,7 +296,7 @@ function render () {
                         }
 
                         //    Flush mlog to processor
-                        if (lines + 5 + 22 + /*extra leeway for error*/ 0 > maxLines) {
+                        if (lines + 6 + 22 + /*extra leeway for error*/ 3 > maxLines) {
                             currProcessor += 1
                             lines = 0
                             currDrawCalls = 0
