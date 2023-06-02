@@ -10,7 +10,7 @@
             This slows down the animation to sync with graphics processors to reduce crust. Maybe not a good thing
             
         Theres still a bit of crust on keyframes
-        
+
     Add option for world procs
 
     Optimise if i have to
@@ -141,13 +141,18 @@ function render () {
     //if (activeAnimations[0] != null) {return}
 
     activeAnimations.splice(-1, 0, displayName)
-
-    let animationData = defineAnimation(animationInfo[0])
-    let animation = animationData.animation
-    let header = animationData.header
-    let totalBatches = animationData.totalBatches
-    //let compressionType = header.compressed
-    let isRaw = header.isRaw
+    let animationData, animation, header, totalBatches, isRaw
+    try {
+        animationData = defineAnimation(animationInfo[0])
+        animation = animationData.animation
+        header = animationData.header
+        totalBatches = animationData.totalBatches
+        //let compressionType = header.compressed
+        isRaw = header.isRaw
+    } catch(e) {
+        print("[ERROR] Invalid file location?")
+        queue.splice(0, 1)
+    }
     queue.splice(0, 1)
 
     try {
