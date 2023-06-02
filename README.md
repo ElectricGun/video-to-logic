@@ -1,7 +1,7 @@
 # sequence-to-logic
 Converts video sequence to a Mindustry logic display animation <br> <br>
 ## How to use:
-0. Use the [video converter script](https://github.com/ElectricGun/video-converter/blob/main/README.md "Video Converter") to convert a video into a bunch of files (or create your own script, output format must be the same)<br>
+0. Use the [video converter script](https://github.com/ElectricGun/video-converter "Video Converter") to convert a video into a bunch of files (or create your own script, output format must be the same)<br>
 1. Install electricgun/message-block-commands <br>
 2. Copy the output folder of the video converter to the animations folder in the mod directory. You might need to unzip the mod first <br>
 3. Place down a message block on a Sandbox World <br>
