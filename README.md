@@ -17,4 +17,4 @@ Dependencies: <br>
 - The processors will overwrite blocks in a roughly 42 block radius, only use this mod on disposable sandbox worlds, you can then save it as a scheme after <br> <br>
 - Config file directory: data/config.hjson <br>
 <br>
-ONLY USE ON DISPOSABLE SANDBOX WORLDS, unless you want your builds overwritten by processors.
+ONLY USE ON DISPOSABLE SINGLEPLAYER SANDBOX WORLDS, unless you want your builds overwritten by processors.
