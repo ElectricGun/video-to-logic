@@ -11,12 +11,17 @@
             
         Theres still a bit of crust on keyframes
 
-    Add option for world procs
+    Add option for world procs  DONE
+
+    Add programmable settings using a memcell, like ipt and refreshes per cycle
 
     Optimise if i have to
 
     Clean up code
-        -Use a tilemap instead of hardcoding positions of the control panel
+
+    Idea:
+        Write packed pixels of frames into membanks and have dedicated processors to render them.
+            This should save a lot of space and potentially reduce crust   
 */
 
 const config = JSON.parse(Jval.read(Vars.tree.get("data/config.hjson").readString()))
@@ -51,10 +56,10 @@ function defineAnimation (name) {
     return {animation: animation, header: header, totalBatches: totalBatches}
 }
 
-function addToQueue(name, compression, messageBlock) {
+function addToQueue(name, compression, processorType, messageBlock) {
     let x = messageBlock.x / 8
     let y = messageBlock.y / 8
-    let data = [name, Vec2(x, y), compression]
+    let data = [name, Vec2(x, y), compression, processorType]
     queue.push(data)
 }
 
@@ -98,47 +103,62 @@ function dist(x0, y0, x1, y1) {
     return distance
 }
 
-/*
-function midpoint(x0, y0, x1, y1) {
-    let midX = (x0 + x1) / 2
-    let midY = (y0 + y1) / 2
-    return Vec2(midX, midY)
-}
+function spiral(n, step, squishX, squishY) {
+    let dist = 0
+    let dir = 0    //0 right, 1 up, 2 left, 3 down
+    let outX = 0
+    let outY = 0
+    let counter = 0
+    let switches = 0
 
-function listCompare(list0, list1) {
-    let length0 = list0.length
-    let length1 = list1.length
+    for (let i = 0; i < n; i++) {
 
-    if (length0 != length1) {
-        return false
-    }
-
-    for (let i = 0; i < length0; i++) {
-        let same = list0[i] == list1[i]
-        if (same == false) {
-            return false
+        if (counter > dist) {
+            if ((switches % 2)) {
+                dist += 1
+            }
+            dir += 1
+            dir %= 4
+            counter = 0
+            switches += 1
         }
+        if        (dir == 0) {
+            outX += (step - squishX)
+        } else if (dir == 1) {
+            outY += (step - squishY)
+        } else if (dir == 2) {
+            outX -= (step - squishX)
+        } else if (dir == 3) {
+            outY -= (step - squishY)
+        }
+        counter += 1
     }
-    return true
-}
-*/
 
-function render () {
+    return {x: outX, y: outY}
+}
+
+function render () {    //what the hell is this function
 
     let animationInfo = queue[0]
     let startTime = Time.millis()
-    let startingPosition, frame, data, displayName, compression
+    let startingPosition, frame, data, displayName, compression, processorTypeStr
 
     try {
         startingPosition = animationInfo[1]
         compression = animationInfo[2]
+        processorTypeStr = animationInfo[3]
         displayName = (startingPosition.x * Vars.world.height() + startingPosition.y).toString(16).slice(2)
     } catch (error) {
-        //do nothing if there is nothing in queue
+
         return
     }
 
     //if (activeAnimations[0] != null) {return}
+
+    if (compression < 0) {
+        print("[ERROR] Argument compression must be greater than 0")
+        return
+    }
 
     activeAnimations.splice(-1, 0, displayName)
     let animationData, animation, header, totalBatches, isRaw
@@ -147,7 +167,7 @@ function render () {
         animation = animationData.animation
         header = animationData.header
         totalBatches = animationData.totalBatches
-        //let compressionType = header.compressed
+        let compressionType = header.compressed
         isRaw = header.isRaw
     } catch(e) {
         print("[ERROR] Invalid file location?")
@@ -156,7 +176,7 @@ function render () {
     queue.splice(0, 1)
 
     try {
-        //let nFrames = 0, second = 0, currFrame = 0
+
         startTime = Time.millis()
         
         let totalFrames = 0
@@ -166,21 +186,66 @@ function render () {
         };
 
         print(animation[0].seq[0].slice(-1)[0].slice(-1))
-        //let frameLength = animation[0].seq[0].slice(-1)[0][1]
-        //let frameHeight = animation[0].seq[0].slice(-1)[0][2]
 
         Vars.tree.get("logs/mlogs.txt").writeString(" ")
     
         let step = animation[0].step
+
+
+        let mainLinks = [
+            new LogicBlock.LogicLink(startingPosition.x, startingPosition.y, "display1", true),
+            new LogicBlock.LogicLink(startingPosition.x - 2, startingPosition.y + 4, "cell1", true),
+            new LogicBlock.LogicLink(startingPosition.x - 1, startingPosition.y + 4, "switch1", true)
+        ]
+
+        let startingTiles = [
+            {type: "block", x: startingPosition.x,     y: startingPosition.y,     block: Blocks.largeLogicDisplay, config: undefined},
+            {type: "block", x: startingPosition.x - 2, y: startingPosition.y + 4, block: Blocks.memoryCell,        config: undefined},
+            {type: "block", x: startingPosition.x - 1, y: startingPosition.y + 4, block: Blocks.switchBlock,       config: false},
+            {type: "block", x: startingPosition.x + 3, y: startingPosition.y + 4, block: Blocks.liquidSource,      config: Liquids.cryofluid}
+        ]
+
+        let graphicsTiles = [
+            //    First column
+            {type: "processor", x: startingPosition.x + 5, y: startingPosition.y + 5,         block: Blocks.hyperProcessor, code: "", links: mainLinks},
+            {type: "processor", x: startingPosition.x + 5, y: startingPosition.y + 5 - 3,     block: Blocks.hyperProcessor, code: "", links: mainLinks},
+            {type: "processor", x: startingPosition.x + 5, y: startingPosition.y + 5 - 3 - 3, block: Blocks.hyperProcessor, code: "", links: mainLinks},
+
+            //    Second column
+            {type: "processor", x: startingPosition.x + 5 + 4, y: startingPosition.y + 5,         block: Blocks.hyperProcessor, code: "", links: mainLinks},
+            {type: "processor", x: startingPosition.x + 5 + 4, y: startingPosition.y + 5 - 3,     block: Blocks.hyperProcessor, code: "", links: mainLinks},
+            {type: "processor", x: startingPosition.x + 5 + 4, y: startingPosition.y + 5 - 3 - 3, block: Blocks.hyperProcessor, code: "", links: mainLinks},
+
+            {type: "block", x: startingPosition.x + 7, y: startingPosition.y + 5, block: Blocks.liquidSource, config: Liquids.cryofluid},
+            {type: "block", x: startingPosition.x + 7, y: startingPosition.y + 5 - 3, block: Blocks.liquidSource, config: Liquids.cryofluid},
+            {type: "block", x: startingPosition.x + 7, y: startingPosition.y + 5 - 3, block: Blocks.liquidSource, config: Liquids.cryofluid}
+        ]
+
+        let processorTypes = {
+            microProcessor: {block: Blocks.microProcessor, size: 1, squishX: 0, squishY: 0, range: 10},
+            logicProcessor: {block: Blocks.logicProcessor, size: 2, squishX: 0, squishY: 0, range: 22},
+            hyperProcessor: {block: Blocks.hyperProcessor, size: 4, squishX: 0.5, squishY: 1, range: 42},
+            worldProcessor: {block: Blocks.worldProcessor, size: 1, squishX: 0, squishY: 0, range: 10000}
+        }
+
+        let processorType
+        try{
+            processorType = processorTypes[processorTypeStr]
+        } catch (e) {
+            print("[ERROR] Invalid processor type argument")
+            return
+        }
+
         //    Place initial blocks
-        placeBlock(startingPosition.x, startingPosition.y, Blocks.largeLogicDisplay)
-        placeBlock(startingPosition.x - 2, startingPosition.y + 4, Blocks.memoryCell)
-        placeBlock(startingPosition.x - 1, startingPosition.y + 4, Blocks.switchBlock, false)
-        placeBlock(startingPosition.x + 3, startingPosition.y + 4, Blocks.liquidSource, Liquids.cryofluid)
-        let mainLinks = [new LogicBlock.LogicLink(startingPosition.x, startingPosition.y, "display1", true),
-                         new LogicBlock.LogicLink(startingPosition.x - 2, startingPosition.y + 4, "cell1", true),
-                         new LogicBlock.LogicLink(startingPosition.x - 1, startingPosition.y + 4, "switch1", true)
-                    ]
+        startingTiles.forEach(b => {
+            if (b.type == "block") {
+                placeBlock(b.x, b.y, b.block, b.config)
+            } else if(b.type == "processor") {
+                placeProcessor(b.x, b.y, b.block, b.code, b.links)
+            } else {
+                print("[ERROR] Invalid block type... skipping")
+            }
+        })
 
         //    Max lines per processor
         const maxLines = 1000
@@ -198,13 +263,17 @@ function render () {
         let scale = 4
 
         //    Position of the first graphics processor
-        const startingPoint = Vec2(startingPosition.x - 84 - 1, startingPosition.y - 84 + 2)
+        //let startingPoint = Vec2(startingPosition.x - 84 - 1, startingPosition.y - 84 + 2)
+        let startingPoint = Vec2(startingPosition.x, startingPosition.y)
 
         //    Draw flush very x number of draw calls scaled by the rough amount of draw calls per frame. Set low for minimum crust, set high to lower space requirements
         let drawBufferFactor = compression
 
         //    Maximum number of pixels of the same colour drawn without calling "draw color". Set low for minimum crust, set high to lower space requirements drastically
         let maxColour = compression
+
+        let panelMin = Vec2(3, 3)
+        let panelMax = Vec2(3, 6)
 
         //    Define stuff
         let currProcessor = 0
@@ -213,12 +282,22 @@ function render () {
         let lines = 0
         let currDrawCalls = 0
         let processorCode = ""
+
         let offset = Vec2(0, 0)
-        let column = 0
-        let isOdd = false
+        let spiralIteration = 0
+        let prevOffsetX = 0
+        let prevOffsetY = 0
+
+        let maxOffset = Vec2(0, 0)
+        let minOffset = Vec2(0, 0)
         if (header.compressed == 1) {
 
             processorCode = ""
+
+            if (processorTypeStr == "worldProcessor") {
+                processorCode += "setrate 750" + "\n"
+                lines += 1
+            }
 
             for (let i = 0; i < totalBatches; i++) {
                 let currBatch = animation[i]
@@ -309,36 +388,63 @@ function render () {
                             
                             
                             //    Define processor location
-                            
-                            while (dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x, startingPosition.y) > processorRange ||
-                                   dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x - 2, startingPosition.y + 4) > processorRange ||
-                                   (startingPoint.x + offset.x > startingPosition.x - 4 && startingPoint.x + offset.x < startingPosition.x + 6) &&
-                                   (startingPoint.y + offset.y > startingPosition.y - 3 && startingPoint.y + offset.y < startingPosition.y + 7)
+
+                            let spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
+                            offset.x = spiralOffset.x
+                            offset.y = spiralOffset.y
+
+                            while (dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x, startingPosition.y) > processorType.range ||
+                                   dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x - 2, startingPosition.y + 4) > processorType.range ||
+
+                                   ((startingPoint.x + offset.x > startingPosition.x - panelMin.y - processorType.size / 2 && startingPoint.x + offset.x < startingPosition.x + panelMax.x + processorType.size / 2) &&
+                                    (startingPoint.y + offset.y > startingPosition.y - panelMin.y - processorType.size / 2 && startingPoint.y + offset.y < startingPosition.y + panelMax.y + processorType.size / 2)) ||
+
+                                   (offset.x == prevOffsetX && offset.y == prevOffsetY)
                                    ) {
-                            
-                                isOdd = column % 2 == 0
-                                offset.y += 3
 
-                                if (offset.y + 3 > processorRange * 4) {
-                                    offset.y = 0
-                                    offset.x += 4
-                                    column += 1
-                                    if (isOdd) {
-                                        offset.x -= 1
-                                    }
-                                }
+                                spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
+                                offset.x = spiralOffset.x
+                                offset.y = spiralOffset.y
+                                spiralIteration += 1
 
-                                if (offset.x + 3 > processorRange * 4) {
+                                if ((offset.x + processorType.size > processorType.range * 4) &&
+                                    (offset.y + processorType.size > processorType.range * 4)) {
+
                                     print("Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
+
+                                    //    Place clock processor
+                                    placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
+                                        .replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
+                                        .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                                     return
                                 }
                             }
-                            
+
+                            print([spiralIteration, offset.x, offset.y, spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY).y])
+
+                            if (offset.x > maxOffset.x) {
+                                maxOffset.x = offset.x
+                            }
+
+                            if (offset.y > maxOffset.y) {
+                                maxOffset.y = offset.y
+                            }
+
+                            if (offset.x < minOffset.x) {
+                                minOffset.x = offset.x
+                            }
+
+                            if (offset.y < minOffset.y) {
+                                minOffset.y = offset.y
+                            }
+
+                            prevOffsetX = offset.x
+                            prevOffsetY = offset.y
+
                             //    Place processor
-                            let cryoOffset = isOdd ? -2: 2
                             processorCode = processorCode.replace(new RegExp("LABEL" + (processorFrame + 1), "g"), "LABEL0")
-                            placeBlock(startingPoint.x + offset.x + cryoOffset, startingPoint.y + offset.y, Blocks.liquidSource, Liquids.cryofluid)
-                            placeProcessor(startingPoint.x + offset.x, startingPoint.y + offset.y, Blocks.hyperProcessor, processorCode, mainLinks.slice(0, 2))
+                            placeProcessor(startingPoint.x + Math.floor(offset.x), startingPoint.y + Math.floor(offset.y), processorType.block, processorCode, mainLinks.slice(0, 2))
+
 
                             //    Log mlog to logs.txt
                             
@@ -347,11 +453,15 @@ function render () {
                                 Vars.tree.get("logs/mlogs.txt").writeString(prevDebug + "CURRPROCESSOR " + currProcessor + " " + lines + " " + globalFrame + "\n" + processorCode)
                             }
                             
-
                             //    Reset mlog
                             processorFrame = 0
                             processorCode = ""
                             
+                            if (processorTypeStr == "worldProcessor") {
+                                processorCode += "setrate 750" + "\n"
+                                lines += 1
+                            }
+
                             processorCode += mlogCodes.frameWithin.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                                   .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
                                                                   .replace(/_BATCH_/g, frameProcessorBatchNumber)
@@ -370,31 +480,74 @@ function render () {
 
                 if (i == totalBatches - 1) {
 
-                    //    Place final processor
+                    //    Place final processor (lazy copy and paste i know)
 
-                    while (dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x, startingPosition.y) > processorRange ||
-                            dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x - 2, startingPosition.y + 4) > processorRange ||
-                            (startingPoint.x + offset.x > startingPosition.x - 4 && startingPoint.x + offset.x < startingPosition.x + 6) &&
-                            (startingPoint.y + offset.y > startingPosition.y - 3 && startingPoint.y + offset.y < startingPosition.y + 7)
-                            ) {
-                    
-                        isOdd = column % 2 == 0
-                        offset.y += 3
+                    let spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
+                    offset.x = spiralOffset.x
+                    offset.y = spiralOffset.y
+                    while (dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x, startingPosition.y) > processorType.range ||
+                    dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x - 2, startingPosition.y + 4) > processorType.range ||
 
-                        if (offset.y + 3 > processorRange * 4) {
-                            offset.y = 0
-                            offset.x += 4
-                            column += 1
-                            if (isOdd) {
-                                offset.x -= 1
-                            }
-                        }
+                    ((startingPoint.x + offset.x > startingPosition.x - panelMin.y - processorType.size / 2 && startingPoint.x + offset.x < startingPosition.x + panelMax.x + processorType.size / 2) &&
+                     (startingPoint.y + offset.y > startingPosition.y - panelMin.y - processorType.size / 2 && startingPoint.y + offset.y < startingPosition.y + panelMax.y + processorType.size / 2)) ||
 
-                        if (offset.x + 3 > processorRange * 4) {
+                    (offset.x == prevOffsetX && offset.y == prevOffsetY)
+                    ) {
+
+                        spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
+                        offset.x = spiralOffset.x
+                        offset.y = spiralOffset.y
+                        spiralIteration += 1
+
+                        if ((offset.x + processorType.size > processorType.range * 4) &&
+                            (offset.y + processorType.size > processorType.range * 4)) {
+
+                            //    Place clock processor
+                            placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
+                                .replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
+                                .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                             print("Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
                             return
                         }
                     }
+
+                    if (offset.x > maxOffset.x) {
+                        maxOffset.x = offset.x
+                    }
+
+                    if (offset.y > maxOffset.y) {
+                        maxOffset.y = offset.y
+                    }
+
+                    if (offset.x < minOffset.x) {
+                        minOffset.x = offset.x
+                    }
+
+                    if (offset.y < minOffset.y) {
+                        minOffset.y = offset.y
+                    }
+
+                    //    Place Cryofluid sources
+                    let cryoPos = Vec2(minOffset.x -2, minOffset.y)
+                    if (processorTypeStr == "hyperProcessor") {
+                        while (true) {
+                            if (!((startingPoint.x + cryoPos.x > startingPosition.x - panelMin.y &&
+                                startingPoint.x + cryoPos.x < startingPosition.x + panelMax.x) &&
+                                (startingPoint.y + cryoPos.y > startingPosition.y - panelMin.y &&
+                                startingPoint.y + cryoPos.y < startingPosition.y + panelMax.y))) {
+                                placeBlock(startingPosition.x + cryoPos.x, startingPosition.y + cryoPos.y, Blocks.liquidSource, Liquids.cryofluid)
+                            }
+                            cryoPos.y += 3
+                            if (cryoPos.y > maxOffset.y) {
+                                cryoPos.x += 7
+                                cryoPos.y = minOffset.y
+                            }
+                            if (cryoPos.x > maxOffset.x + 2) {
+                                break
+                            }
+                        }
+                    }
+                    
                     processorCode += mlogCodes.tail
                     processorCode = processorCode.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                  .replace(/_FINISHEDLABEL_/g, "FINISH" + processorFrame)
@@ -405,13 +558,13 @@ function render () {
                         Vars.tree.get("logs/mlogs.txt").writeString(prevDebug + "CURRPROCESSOR " + currProcessor + " " + lines + " " + globalFrame + "\n" + processorCode)
                     }
 
-                    placeBlock(startingPoint.x + offset.x + 2, startingPoint.y + offset.y, Blocks.liquidSource, Liquids.cryofluid)
-                    placeProcessor(startingPoint.x + offset.x, startingPoint.y + offset.y, Blocks.hyperProcessor, processorCode, mainLinks.slice(0, 2))
+                    placeProcessor(startingPoint.x + offset.x, startingPoint.y + offset.y, processorType.block, processorCode, mainLinks.slice(0, 2))
 
                     //    Place clock processor
                     placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
-                    .replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
-                    .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
+                        .replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
+                        .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
+                    
                 }
             }
         }
@@ -420,17 +573,6 @@ function render () {
         print(error);
     }
 }
-
-
-/*
-function countdown (seconds) {
-
-    for (let i = 0; i < seconds; i++) {
-        let counter = i
-        Packages.arc.util.Time.run(60 * i, () => {print(counter + 1)})
-    }
-}
-*/
 
 module.exports = {
 render: render,
