@@ -1,27 +1,30 @@
 /*TODO:
     Fix crusty:
 
-        -Dont draw single frames in parallel to reduce crust                                    DONE
-        -Draw a frame only twice or a few times to prevent omega level crusting                 DONE
-        -Lock write to cell 0 in frame clock when a draw job is active.                         DONE
+        -Dont draw single frames in parallel to reduce crust.                                    DONE
+        -Draw a frame only twice or a few times to prevent omega level crusting.                 DONE
+        -Lock write to cell 0 in frame clock when a draw job is active.                          DONE
             -Stop drawing if lock == 1
             -Only reset lock in clock
 
-            This slows down the animation to sync with graphics processors to reduce crust. Maybe not a good thing
+            This slows down the animation to sync with graphics processors to reduce crust. Maybe not a good thing.
             
-        Theres still a bit of crust on keyframes
+        Theres still a bit of crust on keyframes when the ipt is above 750 or so. This is probably something to do with the nature of the game.
 
-    Add option for world procs  DONE
+    Add option for other processors.                                                             DONE
 
-    Add programmable settings using a memcell, like ipt and refreshes per cycle
+    Set ipt of World processors to 25 when switch is disabled to reduce lag
 
-    Optimise if i have to
+    Add programmable settings, like ipt and refreshes per cycle.                                 DONE
 
-    Clean up code
+    Optimise if i have to.
 
-    Idea:
-        Write packed pixels of frames into membanks and have dedicated processors to render them.
-            This should save a lot of space and potentially reduce crust   
+    Clean up code.
+
+    Framebuffer:
+        -Instead of drawing straight into the display, write packed pixel values into membanks and have dedicated gpus to draw them.
+        This will probably speed up render time at the cost of being more spacious.
+        -Let this be toggleable.
 */
 
 const config = JSON.parse(Jval.read(Vars.tree.get("data/config.hjson").readString()))
@@ -56,10 +59,10 @@ function defineAnimation (name) {
     return {animation: animation, header: header, totalBatches: totalBatches}
 }
 
-function addToQueue(name, compression, processorType, messageBlock) {
+function addToQueue(name, compression, scale, processorType, messageBlock) {
     let x = messageBlock.x / 8
     let y = messageBlock.y / 8
-    let data = [name, Vec2(x, y), compression, processorType]
+    let data = [name, Vec2(x, y), compression, processorType, Math.floor(scale)]
     queue.push(data)
 }
 
@@ -141,12 +144,13 @@ function render () {    //what the hell is this function
 
     let animationInfo = queue[0]
     let startTime = Time.millis()
-    let startingPosition, frame, data, displayName, compression, processorTypeStr
+    let startingPosition, frame, data, displayName, compression, processorTypeStr, scale
 
     try {
         startingPosition = animationInfo[1]
         compression = animationInfo[2]
         processorTypeStr = animationInfo[3]
+        scale = animationInfo[4]
         displayName = (startingPosition.x * Vars.world.height() + startingPosition.y).toString(16).slice(2)
     } catch (error) {
 
@@ -192,9 +196,15 @@ function render () {    //what the hell is this function
         let step = animation[0].step
 
 
-        let mainLinks = [
+        const mainLinks = [
             new LogicBlock.LogicLink(startingPosition.x, startingPosition.y, "display1", true),
             new LogicBlock.LogicLink(startingPosition.x - 2, startingPosition.y + 4, "cell1", true),
+            new LogicBlock.LogicLink(startingPosition.x + 3, startingPosition.y + 5, "cell2", true),
+            new LogicBlock.LogicLink(startingPosition.x - 1, startingPosition.y + 4, "switch1", true)
+        ]
+
+        const configLinks = [
+            new LogicBlock.LogicLink(startingPosition.x + 3, startingPosition.y + 5, "cell1", true),
             new LogicBlock.LogicLink(startingPosition.x - 1, startingPosition.y + 4, "switch1", true)
         ]
 
@@ -202,9 +212,13 @@ function render () {    //what the hell is this function
             {type: "block", x: startingPosition.x,     y: startingPosition.y,     block: Blocks.largeLogicDisplay, config: undefined},
             {type: "block", x: startingPosition.x - 2, y: startingPosition.y + 4, block: Blocks.memoryCell,        config: undefined},
             {type: "block", x: startingPosition.x - 1, y: startingPosition.y + 4, block: Blocks.switchBlock,       config: false},
-            {type: "block", x: startingPosition.x + 3, y: startingPosition.y + 4, block: Blocks.liquidSource,      config: Liquids.cryofluid}
+            {type: "block", x: startingPosition.x + 3, y: startingPosition.y + 4, block: Blocks.liquidSource,      config: Liquids.cryofluid},
+            {type: "block", x: startingPosition.x + 3, y: startingPosition.y + 5, block: Blocks.memoryCell,        config: undefined},
+            {type: "processor", x: startingPosition.x + 3, y: startingPosition.y + 6,         block: Blocks.microProcessor, code: mlogCodes.config.replace(/_FPS_/g, animation[0].fps / step), 
+                links: configLinks}
+            
         ]
-
+        /* WIP
         let graphicsTiles = [
             //    First column
             {type: "processor", x: startingPosition.x + 5, y: startingPosition.y + 5,         block: Blocks.hyperProcessor, code: "", links: mainLinks},
@@ -220,6 +234,7 @@ function render () {    //what the hell is this function
             {type: "block", x: startingPosition.x + 7, y: startingPosition.y + 5 - 3, block: Blocks.liquidSource, config: Liquids.cryofluid},
             {type: "block", x: startingPosition.x + 7, y: startingPosition.y + 5 - 3, block: Blocks.liquidSource, config: Liquids.cryofluid}
         ]
+        */
 
         let processorTypes = {
             microProcessor: {block: Blocks.microProcessor, size: 1, squishX: 0, squishY: 0, range: 10},
@@ -260,7 +275,7 @@ function render () {    //what the hell is this function
         let processorRange = 42
 
         //    Scale image by
-        let scale = 4
+        //let scale = 4
 
         //    Position of the first graphics processor
         //let startingPoint = Vec2(startingPosition.x - 84 - 1, startingPosition.y - 84 + 2)
@@ -294,11 +309,6 @@ function render () {    //what the hell is this function
 
             processorCode = ""
 
-            if (processorTypeStr == "worldProcessor") {
-                processorCode += "setrate 750" + "\n"
-                lines += 1
-            }
-
             for (let i = 0; i < totalBatches; i++) {
                 let currBatch = animation[i]
                 let currSeq = currBatch.seq
@@ -326,14 +336,14 @@ function render () {    //what the hell is this function
                                                              .replace(/_BATCH_/g, frameProcessorBatchNumber)
                                                              .replace(/_FINISHEDLABEL_/g, "FINISH" + processorFrame)
                                                              .replace(/_FRAME_/g, globalFrame) + "\n"
-                    lines += 21 + 1
+                    lines += 26 + 1
                     } else {
                         processorCode += "drawflush display1" + "\n"
                         processorCode += mlogCodes.frameHead.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                             .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
                                                             .replace(/_BATCH_/g, frameProcessorBatchNumber)
                                                             .replace(/_FRAME_/g, globalFrame) + "\n"
-                    lines += 16 + 1
+                    lines += 20 + 1
                     }
 
                     let prevColour = []
@@ -375,7 +385,7 @@ function render () {    //what the hell is this function
                         }
 
                         //    Flush mlog to processor
-                        if (lines + 6 + 22 + /*extra leeway for error*/ 3 > maxLines) {
+                        if (lines + 6 + 27 + /*extra leeway for error*/ 3 > maxLines) {
                             currProcessor += 1
                             lines = 0
                             currDrawCalls = 0
@@ -414,7 +424,7 @@ function render () {    //what the hell is this function
 
                                     //    Place clock processor
                                     placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
-                                        .replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
+                                        //.replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
                                         .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                                     return
                                 }
@@ -443,7 +453,7 @@ function render () {    //what the hell is this function
 
                             //    Place processor
                             processorCode = processorCode.replace(new RegExp("LABEL" + (processorFrame + 1), "g"), "LABEL0")
-                            placeProcessor(startingPoint.x + Math.floor(offset.x), startingPoint.y + Math.floor(offset.y), processorType.block, processorCode, mainLinks.slice(0, 2))
+                            placeProcessor(startingPoint.x + Math.floor(offset.x), startingPoint.y + Math.floor(offset.y), processorType.block, processorCode, mainLinks.slice(0, 3))
 
 
                             //    Log mlog to logs.txt
@@ -456,11 +466,6 @@ function render () {    //what the hell is this function
                             //    Reset mlog
                             processorFrame = 0
                             processorCode = ""
-                            
-                            if (processorTypeStr == "worldProcessor") {
-                                processorCode += "setrate 750" + "\n"
-                                lines += 1
-                            }
 
                             processorCode += mlogCodes.frameWithin.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                                   .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
@@ -469,7 +474,7 @@ function render () {    //what the hell is this function
                             processorCode += "write " + frameProcessorBatchNumber + " cell1 1" + "\n"
                             processorCode += "draw color " + rgb[0] + " " + rgb[1] + " " + rgb[2] + " 255" + "\n"
             
-                            lines += 16 + 2
+                            lines += 20 + 2
                             offset.y += 3
                         }
 
@@ -504,7 +509,7 @@ function render () {    //what the hell is this function
 
                             //    Place clock processor
                             placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
-                                .replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
+                                //.replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
                                 .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                             print("Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
                             return
@@ -558,11 +563,11 @@ function render () {    //what the hell is this function
                         Vars.tree.get("logs/mlogs.txt").writeString(prevDebug + "CURRPROCESSOR " + currProcessor + " " + lines + " " + globalFrame + "\n" + processorCode)
                     }
 
-                    placeProcessor(startingPoint.x + offset.x, startingPoint.y + offset.y, processorType.block, processorCode, mainLinks.slice(0, 2))
+                    placeProcessor(startingPoint.x + offset.x, startingPoint.y + offset.y, processorType.block, processorCode, mainLinks.slice(0, 3))
 
                     //    Place clock processor
                     placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
-                        .replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
+                        //.replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
                         .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                     
                 }
