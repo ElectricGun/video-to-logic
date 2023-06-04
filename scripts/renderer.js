@@ -265,20 +265,10 @@ function render () {    //what the hell is this function
         //    Max lines per processor
         const maxLines = 1000
 
-        //    Label of jumps in text mlog (currently unused)
-        const frameLabel = "LABEL"
-
         //    Debug mode: logs text mlog output to mlogs.txt
         const debugMode = config.debugMode
 
-        //    Radius of the processor
-        let processorRange = 42
-
-        //    Scale image by
-        //let scale = 4
-
         //    Position of the first graphics processor
-        //let startingPoint = Vec2(startingPosition.x - 84 - 1, startingPosition.y - 84 + 2)
         let startingPoint = Vec2(startingPosition.x, startingPosition.y)
 
         //    Draw flush very x number of draw calls scaled by the rough amount of draw calls per frame. Set low for minimum crust, set high to lower space requirements
@@ -287,6 +277,7 @@ function render () {    //what the hell is this function
         //    Maximum number of pixels of the same colour drawn without calling "draw color". Set low for minimum crust, set high to lower space requirements drastically
         let maxColour = compression
 
+        //    Min and max positions of the control panel, to prevent processors overwriting it
         let panelMin = Vec2(3, 3)
         let panelMax = Vec2(3, 6)
 
@@ -355,7 +346,6 @@ function render () {    //what the hell is this function
                         let pixSize = 1 * scale
 
                         //    Define pixel
-
                         let rgb = []
                         if (!isRaw) {
                             rgb = palette[colour]
@@ -363,6 +353,7 @@ function render () {    //what the hell is this function
                             rgb = colour
                         }
 
+                        //    Skip if "draw color" if colour is the same
                         if ((!(prevColour.toString() == colour.toString())) || lines == 3 || currColCalls >= maxColour) {
                             processorCode += "drawflush display1" + "\n"
                             processorCode += "draw color " + rgb[0] + " " + rgb[1] + " " + rgb[2] + " 255" + "\n"
@@ -373,6 +364,8 @@ function render () {    //what the hell is this function
                         } else {
                             currColCalls += 1
                         }
+
+                        //    Draw the pixel
                         processorCode += "draw rect " + pixelPos.x * scale + " " + pixelPos.y * scale + " " + pixSize + " " + pixSize + "\n"
                         currDrawCalls += 1
                         lines += 1
@@ -424,14 +417,12 @@ function render () {    //what the hell is this function
 
                                     //    Place clock processor
                                     placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
-                                        //.replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
                                         .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                                     return
                                 }
                             }
 
-                            print([spiralIteration, offset.x, offset.y, spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY).y])
-
+                            //    Set max size of the processor array
                             if (offset.x > maxOffset.x) {
                                 maxOffset.x = offset.x
                             }
@@ -455,9 +446,7 @@ function render () {    //what the hell is this function
                             processorCode = processorCode.replace(new RegExp("LABEL" + (processorFrame + 1), "g"), "LABEL0")
                             placeProcessor(startingPoint.x + Math.floor(offset.x), startingPoint.y + Math.floor(offset.y), processorType.block, processorCode, mainLinks.slice(0, 3))
 
-
                             //    Log mlog to logs.txt
-                            
                             if (debugMode) {
                                 let prevDebug = Vars.tree.get("logs/mlogs.txt").readString() + "\n"
                                 Vars.tree.get("logs/mlogs.txt").writeString(prevDebug + "CURRPROCESSOR " + currProcessor + " " + lines + " " + globalFrame + "\n" + processorCode)
@@ -486,7 +475,6 @@ function render () {    //what the hell is this function
                 if (i == totalBatches - 1) {
 
                     //    Place final processor (lazy copy and paste i know)
-
                     let spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
                     offset.x = spiralOffset.x
                     offset.y = spiralOffset.y
@@ -509,13 +497,13 @@ function render () {    //what the hell is this function
 
                             //    Place clock processor
                             placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
-                                //.replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
                                 .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                             print("Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
                             return
                         }
                     }
 
+                    //    Set max size of the processor array
                     if (offset.x > maxOffset.x) {
                         maxOffset.x = offset.x
                     }
@@ -567,7 +555,6 @@ function render () {    //what the hell is this function
 
                     //    Place clock processor
                     placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
-                        //.replace(/_PERIOD_/g, (1 / animation[0].fps * step) * 1000)
                         .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                     
                 }
