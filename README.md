@@ -15,7 +15,7 @@ Dependencies: <br>
 9. Activate the switch to play. <br> <br>
 ## Important: 
 - If your animation is very crusty and choppy, you may need to decrease the compression treshold or artifically increase the hyperprocessor speed using Blocks.hyperProcessor.instructionsPerTick = (number, larger than 25) <br> <br>
-- The processors will overwrite blocks in a roughly 42 block radius, only use this mod on disposable sandbox worlds, you can then save it as a scheme after <br> <br>
+- The processors will overwrite blocks around the main display, only use this mod on **disposable sandbox worlds**, you can then save it as a scheme after <br> <br>
 - Config file directory: data/config.hjson <br>
 <br>
-ONLY USE ON DISPOSABLE SINGLEPLAYER SANDBOX WORLDS, unless you want your builds overwritten by processors.
+Doesn't work on multiplayer
