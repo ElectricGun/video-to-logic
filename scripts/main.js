@@ -6,8 +6,8 @@ var selfDestruct;
 Events.on(ClientLoadEvent, () => {
     Commands.setHeader("/", "Video Maker")
     Commands.addCommand("v2logic",
-        [function out(messageBlock, mediaName, compression, processorType) {
-        Renderer.addToQueue(mediaName, compression, processorType, messageBlock)
+        [function out(messageBlock, mediaName, compression, scale, processorType) {
+        Renderer.addToQueue(mediaName, compression, scale, processorType, messageBlock)
         },["string", "string", "string"]]
     )
 })
