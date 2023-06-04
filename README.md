@@ -1,5 +1,5 @@
 # sequence-to-logic
-Converts video sequence to a Mindustry logic display animation <br> <br>
+Converts sequence to a Mindustry logic display animation <br> <br>
 Dependencies: <br> 
 [electricgun/message-block-commands](https://github.com/ElectricGun/message-block-commands)
 ## How to use:
