@@ -11,7 +11,8 @@ Dependencies: <br>
 5. Exit out of the message block gui (this will lag for a few moments). <br> <br>
 6. Wait for it to finish, building the processors might take a while depending on your CPU and the overall size of the sequence <br> <br>
 7. Exit the world and rejoin to refresh the processors <br> <br>
-8. Activate the switch to play. <br> <br>
+8. Edit the config processor (the microprocessor to the right of the clock processor) to your liking <br> <br>
+9. Activate the switch to play. <br> <br>
 ## Important: 
 - If your animation is very crusty and choppy, you may need to decrease the compression treshold or artifically increase the hyperprocessor speed using Blocks.hyperProcessor.instructionsPerTick = (number, larger than 25) <br> <br>
 - The processors will overwrite blocks in a roughly 42 block radius, only use this mod on disposable sandbox worlds, you can then save it as a scheme after <br> <br>
