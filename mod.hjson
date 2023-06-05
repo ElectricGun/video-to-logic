@@ -3,7 +3,7 @@ displayName: "Video to Logic"
 author: "ElectricGun"
 description: "PLEASE READ THE MOD'S GITHUB PAGE FOR TUTORIAL ON HOW TO USE THIS"
 dependencies: ["message-block-commands"]
-version: "beta 1.1"
+version: "beta 1.11"
 repo: "electricgun/video-to-logic"
 hidden: true
 minGameVersion: "138"
