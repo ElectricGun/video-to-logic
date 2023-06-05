@@ -42,7 +42,6 @@ const mlogs = {
             "write 0 cell1 2",
 
             "jump END lessThan frame _MAXFRAME_",
-            "wait 2",
             "set frame 0",
                 "END:",
 
