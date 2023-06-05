@@ -54,7 +54,7 @@ function defineAnimation (name) {
         }
         totalBatches = header.totalBatches;
     } catch (e) {
-        print(e)
+        Log.infoTag("V2Logic", e)
     }
     return {animation: animation, header: header, totalBatches: totalBatches}
 }
@@ -160,7 +160,7 @@ function render () {    //what the hell is this function
     //if (activeAnimations[0] != null) {return}
 
     if (compression < 0) {
-        print("[ERROR] Argument compression must be greater than 0")
+        Log.infoTag("V2Logic", "[ERROR] Argument compression must be greater than 0")
         return
     }
 
@@ -174,7 +174,7 @@ function render () {    //what the hell is this function
         let compressionType = header.compressed
         isRaw = header.isRaw
     } catch(e) {
-        print("[ERROR] Invalid file location?")
+        Log.infoTag("V2Logic", "[ERROR] Invalid file location?")
         queue.splice(0, 1)
     }
     queue.splice(0, 1)
@@ -189,7 +189,7 @@ function render () {    //what the hell is this function
             totalFrames += animation[i].batchSize
         };
 
-        print(animation[0].seq[0].slice(-1)[0].slice(-1))
+       // Log.infoTag("V2Logic", animation[0].seq[0].slice(-1)[0].slice(-1))
 
         Vars.tree.get("logs/mlogs.txt").writeString(" ")
     
@@ -247,7 +247,7 @@ function render () {    //what the hell is this function
         try{
             processorType = processorTypes[processorTypeStr]
         } catch (e) {
-            print("[ERROR] Invalid processor type argument")
+            Log.infoTag("V2Logic","[ERROR] Invalid processor type argument")
             return
         }
 
@@ -258,7 +258,7 @@ function render () {    //what the hell is this function
             } else if(b.type == "processor") {
                 placeProcessor(b.x, b.y, b.block, b.code, b.links)
             } else {
-                print("[ERROR] Invalid block type... skipping")
+                Log.infoTag("V2Logic","[ERROR] Invalid block type... skipping")
             }
         })
 
@@ -278,8 +278,8 @@ function render () {    //what the hell is this function
         let maxColour = compression
 
         //    Min and max positions of the control panel, to prevent processors overwriting it
-        let panelMin = Vec2(3, 3)
-        let panelMax = Vec2(3, 6)
+        let panelMin = Vec2(2, 2)
+        let panelMax = Vec2(3, 7)
 
         //    Define stuff
         let currProcessor = 0
@@ -399,8 +399,8 @@ function render () {    //what the hell is this function
                             while (dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x, startingPosition.y) > processorType.range ||
                                    dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x - 2, startingPosition.y + 4) > processorType.range ||
 
-                                   ((startingPoint.x + offset.x > startingPosition.x - panelMin.y - processorType.size / 2 && startingPoint.x + offset.x < startingPosition.x + panelMax.x + processorType.size / 2) &&
-                                    (startingPoint.y + offset.y > startingPosition.y - panelMin.y - processorType.size / 2 && startingPoint.y + offset.y < startingPosition.y + panelMax.y + processorType.size / 2)) ||
+                                   ((startingPoint.x + offset.x > startingPosition.x - panelMin.y - Math.ceil(processorType.size / 2) && startingPoint.x + offset.x < startingPosition.x + panelMax.x + Math.ceil(processorType.size / 2)) &&
+                                    (startingPoint.y + offset.y > startingPosition.y - panelMin.y - Math.ceil(processorType.size / 2) && startingPoint.y + offset.y < startingPosition.y + panelMax.y + Math.ceil(processorType.size / 2))) ||
 
                                    (offset.x == prevOffsetX && offset.y == prevOffsetY)
                                    ) {
@@ -413,7 +413,7 @@ function render () {    //what the hell is this function
                                 if ((offset.x + processorType.size > processorType.range * 4) &&
                                     (offset.y + processorType.size > processorType.range * 4)) {
 
-                                    print("Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
+                                    Log.infoTag("V2Logic","Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
 
                                     //    Place clock processor
                                     placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
@@ -481,8 +481,8 @@ function render () {    //what the hell is this function
                     while (dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x, startingPosition.y) > processorType.range ||
                     dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x - 2, startingPosition.y + 4) > processorType.range ||
 
-                    ((startingPoint.x + offset.x > startingPosition.x - panelMin.y - processorType.size / 2 && startingPoint.x + offset.x < startingPosition.x + panelMax.x + processorType.size / 2) &&
-                     (startingPoint.y + offset.y > startingPosition.y - panelMin.y - processorType.size / 2 && startingPoint.y + offset.y < startingPosition.y + panelMax.y + processorType.size / 2)) ||
+                    ((startingPoint.x + offset.x > startingPosition.x - panelMin.y - Math.ceil(processorType.size / 2) && startingPoint.x + offset.x < startingPosition.x + panelMax.x + Math.ceil(processorType.size / 2)) &&
+                     (startingPoint.y + offset.y > startingPosition.y - panelMin.y - Math.ceil(processorType.size / 2) && startingPoint.y + offset.y < startingPosition.y + panelMax.y + Math.ceil(processorType.size / 2))) ||
 
                     (offset.x == prevOffsetX && offset.y == prevOffsetY)
                     ) {
@@ -498,7 +498,7 @@ function render () {    //what the hell is this function
                             //    Place clock processor
                             placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
                                 .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
-                            print("Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
+                            Log.infoTag("V2Logic","Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
                             return
                         }
                     }
@@ -524,10 +524,10 @@ function render () {    //what the hell is this function
                     let cryoPos = Vec2(minOffset.x -2, minOffset.y)
                     if (processorTypeStr == "hyperProcessor") {
                         while (true) {
-                            if (!((startingPoint.x + cryoPos.x > startingPosition.x - panelMin.y &&
-                                startingPoint.x + cryoPos.x < startingPosition.x + panelMax.x) &&
-                                (startingPoint.y + cryoPos.y > startingPosition.y - panelMin.y &&
-                                startingPoint.y + cryoPos.y < startingPosition.y + panelMax.y))) {
+                            if (!((startingPoint.x + cryoPos.x > startingPosition.x - panelMin.y - Math.ceil(processorType.size / 2)  &&
+                                   startingPoint.x + cryoPos.x < startingPosition.x + panelMax.x + Math.ceil(processorType.size / 2)) &&
+                                  (startingPoint.y + cryoPos.y > startingPosition.y - panelMin.y - Math.ceil(processorType.size / 2)  &&
+                                   startingPoint.y + cryoPos.y < startingPosition.y + panelMax.y + Math.ceil(processorType.size / 2)))) {
                                 placeBlock(startingPosition.x + cryoPos.x, startingPosition.y + cryoPos.y, Blocks.liquidSource, Liquids.cryofluid)
                             }
                             cryoPos.y += 3
@@ -561,8 +561,8 @@ function render () {    //what the hell is this function
             }
         }
     } catch (error) {
-        print(error.stack)
-        print(error);
+        Log.infoTag("V2Logic",error.stack)
+        Log.infoTag("V2Logic",error);
     }
 }
 
