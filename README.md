@@ -4,7 +4,7 @@ Converts sequence to a Mindustry logic display animation <br> <br>
 Dependencies: <br> 
 [electricgun/message-block-commands](https://github.com/ElectricGun/message-block-commands)
 ## How to use:
-0. Use the [video converter script](https://github.com/ElectricGun/video-converter "Video Converter") to convert a video into a usable format (or create your own script, output format must be the same) <br> <br>
+0. Use the [video converter script](https://github.com/ElectricGun/video-converter/releases/latest "Video Converter") to convert a video into a usable format (or create your own script, output format must be the same) <br> <br>
 1. Install electricgun/message-block-commands <br> <br>
 2. Copy the output folder of the video converter to the animations folder in the mod directory. You might need to unzip the mod folder first <br> <br>
 3. Place down a message block on a Sandbox World <br> <br>
