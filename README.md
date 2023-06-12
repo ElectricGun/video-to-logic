@@ -15,6 +15,7 @@ Dependencies: <br>
 6. Wait for it to finish, building the processors might take a while depending on your CPU and the overall size of the sequence <br> <br>
 7. Exit the world and rejoin to refresh the processors <br> <br>
 8. Edit the config processor (the microprocessor to the right of the clock processor) to your liking <br> <br>
+![example1](resources/example2.png)
 9. Activate the switch to play. <br> <br>
 ## Important: 
 - If your animation is very crusty and choppy, the instructions per tick may be too high. Consider lowering it to about 750, or disable *forceRender* in the config processor.
