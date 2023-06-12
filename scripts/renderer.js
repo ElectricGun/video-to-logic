@@ -13,7 +13,7 @@
 
     Add option for other processors.                                                             DONE
 
-    Set ipt of World processors to 25 when switch is disabled to reduce lag
+    Set ipt of World processors to 25 when switch is disabled to reduce lag                      DONE
 
     Add programmable settings, like ipt and refreshes per cycle.                                 DONE
 
@@ -21,10 +21,12 @@
 
     Clean up code.
 
-    Framebuffer:
-        -Instead of drawing straight into the display, write packed pixel values into membanks and have dedicated gpus to draw them.
-        This will probably speed up render time at the cost of being more spacious.
-        -Let this be toggleable.
+    To do later:
+
+        Framebuffer:
+            -Instead of drawing straight into the display, write packed pixel values into membanks and have dedicated gpus to draw them.
+            This will probably speed up render time at the cost of being more spacious.
+            -Let this be toggleable.
 */
 
 const config = JSON.parse(Jval.read(Vars.tree.get("data/config.hjson").readString()))
@@ -138,6 +140,27 @@ function spiral(n, step, squishX, squishY) {
     }
 
     return {x: outX, y: outY}
+}
+
+function placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset) {
+
+    while (true) {
+        if (!((startingPoint.x + cryoPos.x > startingPosition.x - panelMin.y - Math.ceil(processorType.size / 2)  &&
+                startingPoint.x + cryoPos.x < startingPosition.x + panelMax.x + Math.ceil(processorType.size / 2)) &&
+                (startingPoint.y + cryoPos.y > startingPosition.y - panelMin.y - Math.ceil(processorType.size / 2)  &&
+                startingPoint.y + cryoPos.y < startingPosition.y + panelMax.y + Math.ceil(processorType.size / 2)))) {
+            placeBlock(startingPosition.x + cryoPos.x, startingPosition.y + cryoPos.y, Blocks.liquidSource, Liquids.cryofluid)
+        }
+        cryoPos.y += 3
+        if (cryoPos.y > maxOffset.y) {
+            cryoPos.x += 7
+            cryoPos.y = minOffset.y
+        }
+        if (cryoPos.x > maxOffset.x + 2) {
+            break
+        }
+    }
+    
 }
 
 function render () {    //what the hell is this function
@@ -296,6 +319,7 @@ function render () {    //what the hell is this function
 
         let maxOffset = Vec2(0, 0)
         let minOffset = Vec2(0, 0)
+        
         if (header.compressed == 1) {
 
             processorCode = ""
@@ -313,9 +337,9 @@ function render () {    //what the hell is this function
 
                     frameProcessorBatchNumber = 0
 
-                    if (currFrameLength <= 0) {
+                    /*if (currFrameLength <= 0) {
                         continue
-                    }
+                    }*/
 
                     let drawBuffer = drawBufferFactor / (currFrameLength / maxLines)
 
@@ -418,6 +442,14 @@ function render () {    //what the hell is this function
                                     //    Place clock processor
                                     placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
                                         .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
+
+                                    //    Place Cryofluid sources
+                                    let cryoPos = Vec2(minOffset.x -2, minOffset.y)
+                                    if (processorTypeStr == "hyperProcessor") {
+
+                                        placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset)
+                                    }
+
                                     return
                                 }
                             }
@@ -474,7 +506,7 @@ function render () {    //what the hell is this function
 
                 if (i == totalBatches - 1) {
 
-                    //    Place final processor (lazy copy and paste i know)
+                    //    Calculate final processor location (lazy copy and paste i know)
                     let spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
                     offset.x = spiralOffset.x
                     offset.y = spiralOffset.y
@@ -499,6 +531,13 @@ function render () {    //what the hell is this function
                             placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
                                 .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                             Log.infoTag("V2Logic","Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
+
+                            //    Place Cryofluid sources
+                            let cryoPos = Vec2(minOffset.x -2, minOffset.y)
+                            if (processorTypeStr == "hyperProcessor") {
+                                placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset)
+                            }
+
                             return
                         }
                     }
@@ -523,22 +562,7 @@ function render () {    //what the hell is this function
                     //    Place Cryofluid sources
                     let cryoPos = Vec2(minOffset.x -2, minOffset.y)
                     if (processorTypeStr == "hyperProcessor") {
-                        while (true) {
-                            if (!((startingPoint.x + cryoPos.x > startingPosition.x - panelMin.y - Math.ceil(processorType.size / 2)  &&
-                                   startingPoint.x + cryoPos.x < startingPosition.x + panelMax.x + Math.ceil(processorType.size / 2)) &&
-                                  (startingPoint.y + cryoPos.y > startingPosition.y - panelMin.y - Math.ceil(processorType.size / 2)  &&
-                                   startingPoint.y + cryoPos.y < startingPosition.y + panelMax.y + Math.ceil(processorType.size / 2)))) {
-                                placeBlock(startingPosition.x + cryoPos.x, startingPosition.y + cryoPos.y, Blocks.liquidSource, Liquids.cryofluid)
-                            }
-                            cryoPos.y += 3
-                            if (cryoPos.y > maxOffset.y) {
-                                cryoPos.x += 7
-                                cryoPos.y = minOffset.y
-                            }
-                            if (cryoPos.x > maxOffset.x + 2) {
-                                break
-                            }
-                        }
+                        placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset)
                     }
                     
                     processorCode += mlogCodes.tail
@@ -551,6 +575,7 @@ function render () {    //what the hell is this function
                         Vars.tree.get("logs/mlogs.txt").writeString(prevDebug + "CURRPROCESSOR " + currProcessor + " " + lines + " " + globalFrame + "\n" + processorCode)
                     }
 
+                    //    Place final processor
                     placeProcessor(startingPoint.x + offset.x, startingPoint.y + offset.y, processorType.block, processorCode, mainLinks.slice(0, 3))
 
                     //    Place clock processor
