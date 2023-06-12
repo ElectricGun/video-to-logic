@@ -320,7 +320,6 @@ function render () {    //what the hell is this function
         let maxOffset = Vec2(0, 0)
         let minOffset = Vec2(0, 0)
         
-        Vars.ui.showInfoPopup("Loading...", 1, 1, 1, 1, 1, 1)
         if (header.compressed == 1) {
 
             processorCode = ""
