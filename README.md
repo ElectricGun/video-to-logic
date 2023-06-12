@@ -1,4 +1,3 @@
-# sequence-to-logic
 [![Github All Releases](https://img.shields.io/github/downloads/electricgun/video-to-logic/total.svg)]()
 Converts sequence to a Mindustry logic display animation <br> <br>
 Dependencies: <br> 
