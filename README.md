@@ -1,5 +1,6 @@
-[Download the latest release.](https://github.com/ElectricGun/video-to-logic/releases/latest) <br>
+<br>
 [![Github All Releases](https://img.shields.io/github/downloads/electricgun/video-to-logic/total.svg)]() <br>
+[Download the latest release.](https://github.com/ElectricGun/video-to-logic/releases/latest) <br>
 # About:
 Converts sequence to a Mindustry logic display animation <br> <br>
 Dependencies: <br> 
