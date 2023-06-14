@@ -22,6 +22,7 @@ Dependencies: <br>
 ## Important: 
 - If your animation is very crusty and choppy, the instructions per tick may be too high. Consider lowering it to about 750, or disable *forceRender* in the config processor.
 - The processors will overwrite blocks around the main display, only use this mod on **disposable sandbox worlds**, you can then save it as a scheme after <br> <br>
+- The *ipt* variable only works on world processors, obviously <br> <br>
 - Config file directory: data/config.hjson <br>
 <br>
 The mod itself doesn't work on multiplayer, but the schematics should.
