@@ -21,7 +21,7 @@ Dependencies: <br>
 9. Activate the switch to play. <br> <br>
 ## Important: 
 - If your animation is very crusty and choppy, the instructions per tick may be too high. Consider lowering it to about 750, or disable *forceRender* in the config processor.
-- The processors will overwrite blocks around the main display, only use this mod on **disposable sandbox worlds**, you can then save it as a scheme after <br>
+- The processors will overwrite blocks around the main display, only use this mod on **disposable sandbox worlds**, you can then save it as a scheme after it's done <br>
 - The *ipt* variable only works on world processors, obviously <br>
 - Config file directory: data/config.hjson <br>
 <br>
