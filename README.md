@@ -11,7 +11,7 @@ Dependencies: <br>
 2. Copy the output of the video converter into the animations folder in the mod directory. You might need to unzip the mod folder first <br> <br>
 ![example1](resources/guide1.gif)
 3. Place down a message block on a Sandbox World <br> <br>
-4. Type "/v2logic args= **(medianame)**, **(maxCol**), **(scale)**, **(processorType)**" into the message block, where <br>**(medianame)** is the name of your sequence folder in the animations folder, <br> **(maxCol)** is the max number of "draw color"s per adjacent colours. Higher values lead to a smaller scheme size, <br> **(scale)** is the scaling factor <br> **(processorType)** is the type of the processors (in camelcase e.g. worldProcessor) <br>  <br>Example command: <br> 
+4. Type "/v2logic args= **- (medianame)**, **- (maxCol**), **- (scale)**, **- (processorType)**" into the message block, where <br>**(medianame)** is the name of your sequence folder in the animations folder, <br> **(maxCol)** is the max number of "draw color"s per adjacent colours. Higher values lead to a smaller scheme size, <br> **(scale)** is the scaling factor <br> **(processorType)** is the type of the processors (in camelcase e.g. worldProcessor) <br>  <br>Example command: <br> 
 ![example1](resources/example1.png) <br> <br>
 5. Exit out of the message block gui (this will lag for a few moments). <br> <br>
 6. Wait for it to finish, building the processors might take a while depending on your CPU and the overall size of the sequence <br> <br>
