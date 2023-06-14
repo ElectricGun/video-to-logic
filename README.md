@@ -23,7 +23,7 @@ Dependencies: <br>
 - If your animation is very crusty and choppy, the instructions per tick may be too high. Consider lowering it to about 750, or disable *forceRender* in the config processor.
 - The processors will overwrite blocks around the main display, only use this mod on **disposable sandbox worlds**, you can then save it as a scheme after it's done <br>
 - The *ipt* variable only works on world processors, obviously <br>
-- Multiprocessing is currently not supported to reduce crust, large animations are very slow unless you use world processors or cheating the ipt of regular processors up <br>
+- Multiprocessing is currently not supported to reduce crust, large animations are very slow unless you use world processors or cheating the ipt of regular processors up. Might give the option to enable multiprocessing if you really don't mind the crust <br>
 - Config file directory: data/config.hjson <br>
 <br>
 The mod itself doesn't work on multiplayer, but the schematics should.
