@@ -24,4 +24,4 @@ Dependencies: <br>
 - The processors will overwrite blocks around the main display, only use this mod on **disposable sandbox worlds**, you can then save it as a scheme after <br> <br>
 - Config file directory: data/config.hjson <br>
 <br>
-Doesn't work on multiplayer
+The mod itself doesn't work on multiplayer, but the schematics should.
