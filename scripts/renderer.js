@@ -19,6 +19,8 @@
 
     Optimise if i have to.
 
+    Convert lazy copy paste to functions
+
     Clean up code.
 
     To do later:
@@ -142,26 +144,57 @@ function spiral(n, step, squishX, squishY) {
     return {x: outX, y: outY}
 }
 
+function placeCryo(centerPos) {
+    let offset = -2
+
+    for (let i = 0; i < 2; i++) {
+        let pointerBlock = Vars.world.build(centerPos.x + offset, centerPos.y)
+        if (pointerBlock != null) {
+            pointerBlock = pointerBlock.block
+        } else {
+            pointerBlock = "null"
+        }
+
+        if (pointerBlock != "hyper-processor") {
+            let cryoPos = Vec2(centerPos.x + offset, centerPos.y)
+            placeBlock(cryoPos.x, cryoPos.y, Blocks.liquidSource, Liquids.cryofluid)
+        }
+        offset += 4
+    }
+}
+/*
 function placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset) {
 
     while (true) {
+        let pointerBlock = Vars.world.build(startingPosition.x + cryoPos.x, startingPosition.y + cryoPos.y)
+        if (pointerBlock != null) {
+            pointerBlock = pointerBlock.block
+        } else {
+            pointerBlock = "null"
+        }
+
         if (!((startingPoint.x + cryoPos.x > startingPosition.x - panelMin.y - Math.ceil(processorType.size / 2)  &&
                 startingPoint.x + cryoPos.x < startingPosition.x + panelMax.x + Math.ceil(processorType.size / 2)) &&
                 (startingPoint.y + cryoPos.y > startingPosition.y - panelMin.y - Math.ceil(processorType.size / 2)  &&
-                startingPoint.y + cryoPos.y < startingPosition.y + panelMax.y + Math.ceil(processorType.size / 2)))) {
-            placeBlock(startingPosition.x + cryoPos.x, startingPosition.y + cryoPos.y, Blocks.liquidSource, Liquids.cryofluid)
+                startingPoint.y + cryoPos.y < startingPosition.y + panelMax.y + Math.ceil(processorType.size / 2)))
+                ) {
+            if (pointerBlock != "hyper-processor") {
+                placeBlock(startingPosition.x + cryoPos.x, startingPosition.y + cryoPos.y, Blocks.liquidSource, Liquids.cryofluid)
+            } else {
+                cryoPos.x -= 1
+            }
         }
-        cryoPos.y += 3
+        cryoPos.x += 4
+        if (cryoPos.x > maxOffset.x) {
+            cryoPos.y += 3
+            cryoPos.x = minOffset.x - 2
+        }
         if (cryoPos.y > maxOffset.y) {
-            cryoPos.x += 7
-            cryoPos.y = minOffset.y
-        }
-        if (cryoPos.x > maxOffset.x + 2) {
             break
         }
     }
     
-}
+}*/
 
 function render () {    //what the hell is this function
 
@@ -320,6 +353,7 @@ function render () {    //what the hell is this function
         let maxOffset = Vec2(0, 0)
         let minOffset = Vec2(0, 0)
         
+        Vars.ui.showInfoPopup("Loading...", 1, 1, 1, 1, 1, 1)
         if (header.compressed == 1) {
 
             processorCode = ""
@@ -443,17 +477,38 @@ function render () {    //what the hell is this function
                                     placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
                                         .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
 
+                                    //    Set max size of the processor array
+                                    if (offset.x > maxOffset.x) {
+                                        maxOffset.x = offset.x
+                                    }
+
+                                    if (offset.y > maxOffset.y) {
+                                        maxOffset.y = offset.y
+                                    }
+
+                                    if (offset.x < minOffset.x) {
+                                        minOffset.x = offset.x
+                                    }
+
+                                    if (offset.y < minOffset.y) {
+                                        minOffset.y = offset.y
+                                    }
+                                    
+                                    /*
                                     //    Place Cryofluid sources
+                                    
                                     let cryoPos = Vec2(minOffset.x -2, minOffset.y)
                                     if (processorTypeStr == "hyperProcessor") {
 
                                         placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset)
                                     }
+                                    */
 
                                     return
                                 }
                             }
 
+                            /*
                             //    Set max size of the processor array
                             if (offset.x > maxOffset.x) {
                                 maxOffset.x = offset.x
@@ -469,7 +524,7 @@ function render () {    //what the hell is this function
 
                             if (offset.y < minOffset.y) {
                                 minOffset.y = offset.y
-                            }
+                            }*/
 
                             prevOffsetX = offset.x
                             prevOffsetY = offset.y
@@ -477,6 +532,9 @@ function render () {    //what the hell is this function
                             //    Place processor
                             processorCode = processorCode.replace(new RegExp("LABEL" + (processorFrame + 1), "g"), "LABEL0")
                             placeProcessor(startingPoint.x + Math.floor(offset.x), startingPoint.y + Math.floor(offset.y), processorType.block, processorCode, mainLinks.slice(0, 3))
+                            if (processorTypeStr == "hyperProcessor") {
+                                placeCryo(Vec2(startingPoint.x + offset.x, startingPoint.y + offset.y))
+                            }
 
                             //    Log mlog to logs.txt
                             if (debugMode) {
@@ -527,21 +585,42 @@ function render () {    //what the hell is this function
                         if ((offset.x + processorType.size > processorType.range * 4) &&
                             (offset.y + processorType.size > processorType.range * 4)) {
 
+                            /*
+                            //    Set max size of the processor array
+                            if (offset.x > maxOffset.x) {
+                                maxOffset.x = offset.x
+                            }
+
+                            if (offset.y > maxOffset.y) {
+                                maxOffset.y = offset.y
+                            }
+
+                            if (offset.x < minOffset.x) {
+                                minOffset.x = offset.x
+                            }
+
+                            if (offset.y < minOffset.y) {
+                                minOffset.y = offset.y
+                            }*/
+
                             //    Place clock processor
                             placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
                                 .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                             Log.infoTag("V2Logic","Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
 
+                            /*
                             //    Place Cryofluid sources
+                            
                             let cryoPos = Vec2(minOffset.x -2, minOffset.y)
                             if (processorTypeStr == "hyperProcessor") {
                                 placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset)
                             }
-
+                            */
                             return
                         }
                     }
 
+                    /*
                     //    Set max size of the processor array
                     if (offset.x > maxOffset.x) {
                         maxOffset.x = offset.x
@@ -557,13 +636,15 @@ function render () {    //what the hell is this function
 
                     if (offset.y < minOffset.y) {
                         minOffset.y = offset.y
-                    }
+                    }*/
 
+                    /*
                     //    Place Cryofluid sources
+                    
                     let cryoPos = Vec2(minOffset.x -2, minOffset.y)
                     if (processorTypeStr == "hyperProcessor") {
                         placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset)
-                    }
+                    }*/
                     
                     processorCode += mlogCodes.tail
                     processorCode = processorCode.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
@@ -577,6 +658,9 @@ function render () {    //what the hell is this function
 
                     //    Place final processor
                     placeProcessor(startingPoint.x + offset.x, startingPoint.y + offset.y, processorType.block, processorCode, mainLinks.slice(0, 3))
+                    if (processorTypeStr == "hyperProcessor") {
+                        placeCryo(Vec2(startingPoint.x + offset.x, startingPoint.y + offset.y))
+                    }
 
                     //    Place clock processor
                     placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
