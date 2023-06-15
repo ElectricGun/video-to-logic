@@ -1,7 +1,7 @@
 name: "v2logic"
 displayName: "Video to Logic"
 author: "ElectricGun"
-description: "[red[]]THIS MOD HAS NO GUI\nPLEASE READ THE MOD'S GITHUB PAGE FOR THE TUTORIAL ON HOW TO USE THIS"
+description: "[red[]]THIS MOD HAS NO GUI\nPLEASE READ THE MOD'S GITHUB PAGE FOR THE TUTORIAL ON HOW TO USE THIS /n/nREQUIRES: electricgun/message-block-commands"
 dependencies: ["message-block-commands"]
 version: "1.0"
 repo: "electricgun/video-to-logic"
