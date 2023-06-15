@@ -1,3 +1,7 @@
+/*TODO:
+    skip frame if next frame is null, maybe using jumps
+*/
+
 const mlogs = {
     clock: 
         [
@@ -25,6 +29,7 @@ const mlogs = {
 
             // for testing
                 "AMONG:",
+
             "read forceRender cell2 2",
             "jump FORCERENDER equal forceRender 1",
 
@@ -43,10 +48,13 @@ const mlogs = {
 
             "jump END lessThan frame _MAXFRAME_",
             "set frame 0",
+
                 "END:",
 
             "end",
+            
                 "OFF:",
+
             "set frame 0",
             "write 0 cell1 0",
             "write 0 cell1 1",
@@ -56,9 +64,9 @@ const mlogs = {
         ].join("\n"),
     config:
         [
-            "set ipt 255",
-            "set refreshesPerCycle 2",
-            "set forceRender 0",
+            "set ipt 1000",
+            "set refreshesPerCycle 1",
+            "set forceRender 1",
             "set FPS _FPS_",
 
             "sensor enabled switch1 @enabled",
@@ -183,6 +191,10 @@ const mlogs = {
             "write 0 cell1 2"
             //    insert frame
         ].join("\n"),
+    frameNull:
+        [
+            ""
+        ],
     tail:
         [
             "drawflush display1",
