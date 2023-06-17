@@ -19,6 +19,7 @@ Events.on(ClientLoadEvent, () => {
     )
 })
 
+//TileChangeEvent? what is that :troll:
 Timer.schedule(() => {
     if(!Vars.state.menu & !Vars.state.paused) {
         Commands.readMessages()
