@@ -4,8 +4,9 @@
 # Changelog:
 * Added *noLock* to config processor. Set to 1 to allow processing large frames on multiple processors
   
-## Coming soon:
+## Coming (not) soon:
 * Framebuffer
+* Multi display support for larger animations
   
 # About:
 Converts a sequence to a Mindustry logic display animation <br> <br>
