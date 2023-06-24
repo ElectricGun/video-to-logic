@@ -384,6 +384,7 @@ function render () {    //what the hell is this function
                                                              .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
                                                              .replace(/_BATCH_/g, frameProcessorBatchNumber)
                                                              .replace(/_FINISHEDLABEL_/g, "FINISH" + processorFrame)
+                                                             .replace(/_LOCK1LABEL_/g, "LOCK1" + processorFrame)
                                                              .replace(/_FRAME_/g, globalFrame) + "\n"
                     lines += 26 + 1
                     } else {
@@ -391,6 +392,7 @@ function render () {    //what the hell is this function
                         processorCode += mlogCodes.frameHead.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                             .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
                                                             .replace(/_BATCH_/g, frameProcessorBatchNumber)
+                                                            .replace(/_LOCK1LABEL_/g, "LOCK1" + processorFrame)
                                                             .replace(/_FRAME_/g, globalFrame) + "\n"
                     lines += 20 + 1
                     }
@@ -549,6 +551,7 @@ function render () {    //what the hell is this function
                             processorCode += mlogCodes.frameWithin.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                                   .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
                                                                   .replace(/_BATCH_/g, frameProcessorBatchNumber)
+                                                                  .replace(/_LOCK1LABEL_/g, "LOCK1" + processorFrame)
                                                                   .replace(/_FRAME_/g, globalFrame) + "\n"
                             processorCode += "write " + frameProcessorBatchNumber + " cell1 1" + "\n"
                             processorCode += "draw color " + rgb[0] + " " + rgb[1] + " " + rgb[2] + " 255" + "\n"

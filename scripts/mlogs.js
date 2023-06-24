@@ -68,6 +68,7 @@ const mlogs = {
             "set refreshesPerCycle 1",
             "set forceRender 1",
             "set FPS _FPS_",
+            "set noLock 0",
 
             "sensor enabled switch1 @enabled",
             "jump OFF equal enabled false",
@@ -83,6 +84,7 @@ const mlogs = {
             "write refreshesPerCycle cell1 1",
             "write forceRender cell1 2",
             "write FPS cell1 3",
+            "write noLock cell1 4",
         ].join("\n"),
     frameStart:
         [
@@ -104,14 +106,19 @@ const mlogs = {
 
             "read ipt cell2 0",
             "setrate ipt",
+            "read noLock cell2 4",
+            "jump _LOCK1LABEL_ equal noLock 1",
 
             "read isFinished cell1 2",
             "jump _NEXTLABEL_ equal isFinished 1",
             "read batch cell1 1",
             "jump _NEXTLABEL_ notEqual batch _BATCH_",
             "read frame cell1 0",
-            "jump _NEXTLABEL_ notEqual frame _FRAME_",
+            
+                "_LOCK1LABEL_:",
 
+            "jump _NEXTLABEL_ notEqual frame _FRAME_",
+            /*
 
             "read ipt cell2 0",
             "setrate ipt",
@@ -122,7 +129,7 @@ const mlogs = {
             "jump _NEXTLABEL_ notEqual batch _BATCH_",
             "read frame cell1 0",
             "jump _NEXTLABEL_ notEqual frame _FRAME_",
-
+*/
 
             "write 0 cell1 2"
             //    insert frame
@@ -137,25 +144,35 @@ const mlogs = {
 
             "read ipt cell2 0",
             "setrate ipt",
+            "read noLock cell2 4",
+            "jump _LOCK1LABEL_ equal noLock 1",
 
             "read isFinished cell1 2",
             "jump _NEXTLABEL_ equal isFinished 1",
             "read batch cell1 1",
             "jump _NEXTLABEL_ notEqual batch _BATCH_",
             "read frame cell1 0",
+            
+                "_LOCK1LABEL_:",
+
             "jump _NEXTLABEL_ notEqual frame _FRAME_",
 
+            /*
             "read ipt cell2 0",
             "setrate ipt",
+            "read noLock cell2 4",
+            "jump _LOCK2LABEL_ equal noLock 1",
 
             "read isFinished cell1 2",
             "jump _NEXTLABEL_ equal isFinished 1",
             "read batch cell1 1",
             "jump _NEXTLABEL_ notEqual batch _BATCH_",
             "read frame cell1 0",
+
+                "_LOCK2LABEL_:",
+
             "jump _NEXTLABEL_ notEqual frame _FRAME_",
-
-
+*/
             "write 0 cell1 2"
             //    insert frame
         ].join("\n"),
@@ -169,14 +186,18 @@ const mlogs = {
 
             "read ipt cell2 0",
             "setrate ipt",
+            "read noLock cell2 4",
+            "jump _LOCK1LABEL_ equal noLock 1",
 
             "read isFinished cell1 2",
             "jump _NEXTLABEL_ equal isFinished 1",
             "read batch cell1 1",
             "jump _NEXTLABEL_ notEqual batch _BATCH_",
             "read frame cell1 0",
+            "_LOCK1LABEL_:",
             "jump _NEXTLABEL_ notEqual frame _FRAME_",
 
+            /*
             "read ipt cell2 0",
             "setrate ipt",
 
@@ -186,8 +207,7 @@ const mlogs = {
             "jump _NEXTLABEL_ notEqual batch _BATCH_",
             "read frame cell1 0",
             "jump _NEXTLABEL_ notEqual frame _FRAME_",
-
-            
+*/
             "write 0 cell1 2"
             //    insert frame
         ].join("\n"),
