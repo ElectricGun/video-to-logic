@@ -1,10 +1,17 @@
 
 [![Github All Releases](https://img.shields.io/github/downloads/electricgun/video-to-logic/total.svg)]() <br>
 [Download the latest release.](https://github.com/ElectricGun/video-to-logic/releases/latest) <br>
+# Changelog:
+* Added *noLock* to config processor. Set to 1 to allow processing large frames on multiple processors
+  
+## Coming soon:
+* Framebuffer
+  
 # About:
 Converts a sequence to a Mindustry logic display animation <br> <br>
 Dependencies: <br> 
 [electricgun/message-block-commands](https://github.com/ElectricGun/message-block-commands)
+
 ## How to use:
 0. Use the [video converter script](https://github.com/ElectricGun/video-converter/releases/latest "Video Converter") to convert a video into a usable format (or create your own script, output format must be the same) <br> <br>
 1. Install electricgun/message-block-commands <br> <br>
