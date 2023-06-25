@@ -6,6 +6,7 @@
   
 ## Coming (not) soon:
 * Framebuffer
+* Real time editing
 * Multi display support for larger animations
   
 # About:
