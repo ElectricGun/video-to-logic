@@ -29,6 +29,7 @@
             -Instead of drawing straight into the display, write packed pixel values into membanks and have dedicated gpus to draw them.
             This will probably speed up render time at the cost of being more spacious.
             -Let this be toggleable.
+            -Add checking of tiles to prevent overwriting memcells.
 */
 
 const config = JSON.parse(Jval.read(Vars.tree.get("data/config.hjson").readString()))
