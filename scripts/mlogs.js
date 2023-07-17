@@ -1,5 +1,5 @@
-/*TODO:
-    skip frame if next frame is null, maybe using jumps
+/*
+    Templates for processors 
 */
 
 const mlogs = {
@@ -9,9 +9,12 @@ const mlogs = {
                   cell1 1 batch number
                   cell1 2 isFinished
             */
+            "jump START always 0 0",
+            "set Generated Using",
+            "set Mod ElectricGun/Video-to-Logic ",
 
                 "START:",
-
+            "setrate 100",
             "sensor enabled switch1 @enabled",
             "jump OFF equal enabled false",
             "set startTime @time",
@@ -55,12 +58,28 @@ const mlogs = {
             
                 "OFF:",
 
+            "setrate 1000",
+
+            "getlink linkedDisplay displayCounter",
+            "op add displayCounter displayCounter 1",
+
+            "read displayCount cell2 5",
             "set frame 0",
             "write 0 cell1 0",
             "write 0 cell1 1",
             "write 0 cell1 2",
             "draw clear 0 0 0",
-            "drawflush display1"
+
+            "op add displayCount2 displayCount 3",
+            "jump ENDDISPLAYLOOP lessThanEq displayCounter displayCount2",
+            "set displayCounter 0",
+            "end",
+                "ENDDISPLAYLOOP:",
+
+            "drawflush linkedDisplay",
+
+            "jump OFF always 0 0"
+            
         ].join("\n"),
     config:
         [
@@ -69,6 +88,7 @@ const mlogs = {
             "set forceRender 1",
             "set FPS _FPS_",
             "set noLock 0",
+            "set displayCount _DISPLAYCOUNT_",
 
             "sensor enabled switch1 @enabled",
             "jump OFF equal enabled false",
@@ -85,6 +105,7 @@ const mlogs = {
             "write forceRender cell1 2",
             "write FPS cell1 3",
             "write noLock cell1 4",
+            "write displayCount cell1 5",
         ].join("\n"),
     frameStart:
         [
@@ -104,8 +125,7 @@ const mlogs = {
             "read frame cell1 0",
             "read batch cell1 1",
 
-            "read ipt cell2 0",
-            "setrate ipt",
+            "setrate 25",
             "read noLock cell2 4",
             "jump _LOCK1LABEL_ equal noLock 1",
 
@@ -118,6 +138,8 @@ const mlogs = {
                 "_LOCK1LABEL_:",
 
             "jump _NEXTLABEL_ notEqual frame _FRAME_",
+            "read ipt cell2 0",
+            "setrate ipt",
             /*
 
             "read ipt cell2 0",
@@ -142,8 +164,7 @@ const mlogs = {
             "read frame cell1 0",
             "read batch cell1 1",
 
-            "read ipt cell2 0",
-            "setrate ipt",
+            "setrate 25",
             "read noLock cell2 4",
             "jump _LOCK1LABEL_ equal noLock 1",
 
@@ -156,6 +177,8 @@ const mlogs = {
                 "_LOCK1LABEL_:",
 
             "jump _NEXTLABEL_ notEqual frame _FRAME_",
+            "read ipt cell2 0",
+            "setrate ipt",
 
             /*
             "read ipt cell2 0",
@@ -184,8 +207,7 @@ const mlogs = {
             "read frame cell1 0",
             "read batch cell1 1",
 
-            "read ipt cell2 0",
-            "setrate ipt",
+            "setrate 25",
             "read noLock cell2 4",
             "jump _LOCK1LABEL_ equal noLock 1",
 
@@ -194,8 +216,13 @@ const mlogs = {
             "read batch cell1 1",
             "jump _NEXTLABEL_ notEqual batch _BATCH_",
             "read frame cell1 0",
+
             "_LOCK1LABEL_:",
+
             "jump _NEXTLABEL_ notEqual frame _FRAME_",
+
+            "read ipt cell2 0",
+            "setrate ipt",
 
             /*
             "read ipt cell2 0",
@@ -217,7 +244,6 @@ const mlogs = {
         ],
     tail:
         [
-            "drawflush display1",
             "op add counter counter 1",
             "read refreshesPerCycle cell2 1",
             "jump _FINISHEDLABEL_ lessThan counter refreshesPerCycle",  //number of repeat draws before finishing
