@@ -586,6 +586,9 @@ function render () {    //    main function
                         return {end: false}
                     }
 
+                    //    For creating large pixels for better compression
+                    let pixelSizeMultiplier = new Vec2(1, 1)
+
                     for (let p = 0; p < currFrameLength; p++) {
                         let currPixel = currFrame[p]
                         let colour = currPixel[0]
@@ -664,11 +667,13 @@ function render () {    //    main function
                         //print([pixelPos.x, pixelPos.y, size.x * scale - scale, size.y * scale - scale, isWithinImageBorder.x1, isWithinImageBorder.y1])
 
                         if (isWithinImageBorder.x1) {
-                            pixelMultiplier.x *= 2  
+                            pixelMultiplier.x *= 4
+                            //print("Image border x")  
                         }
 
                         if (isWithinImageBorder.y1) {
-                            pixelMultiplier.y *= 2
+                            pixelMultiplier.y *= 4
+                            //print("image border y")
                         }
 
                         //    --------------------------------Draw the pixel-----------------------------------
