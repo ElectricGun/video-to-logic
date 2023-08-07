@@ -1,4 +1,13 @@
+const modVersion = "1.03"
+
 /*TODO:
+
+    Use another thread to process to fix that annoying lag spike
+
+    Fix lag when using hyper processors
+
+    Variable size depending on the number of pixels in a frame and colour variety
+        
     Fix crusty:
 
         -Dont draw single frames in parallel to reduce crust.                                    DONE
@@ -16,6 +25,16 @@
     Set ipt of World processors to 25 when switch is disabled to reduce lag                      DONE
 
     Add programmable settings, like ipt and refreshes per cycle.                                 DONE
+
+    Multi display:
+        Use tile checks instead of square boundaries.
+        Maybe group up draw functions per display to reduce code size.
+        Check only if flushing processors are in range
+
+        FIX MULTIDISPLAY CRUST:
+            -Fix incorrect display flushing
+
+            -Probably remove the first displayflush
 
     Optimise if i have to.
 
@@ -59,9 +78,9 @@ function defineAnimation (name) {
         }
         totalBatches = header.totalBatches;
     } catch (e) {
-        Log.infoTag("V2Logic", e)
+        Log.infoTag("v2logic", e)
     }
-    return {animation: animation, header: header, totalBatches: totalBatches}
+    return {animation: animation, header: header, totalBatches: totalBatches, name: name}
 }
 
 function addToQueue(name, compression, scale, processorType, messageBlock) {
@@ -109,6 +128,55 @@ function placeProcessor(x, y, block, code, links) {
 function dist(x0, y0, x1, y1) {
     let distance = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2))
     return distance
+}
+
+function defineFrameSize(animationFrame) {    //   O(n) where n = number of pixels
+    let x = 0
+    let y = 0
+    for (let i = 0; i < animationFrame.length; i++) {
+        let pixel = animationFrame[i]
+        let currX = pixel[1]
+        let currY = pixel[2]
+
+        if (currX > x) {
+            x = currX
+        }
+        if (currY > y) {
+            y = currY
+        }
+    }
+    return {x: x, y: y}
+}
+
+function defineDisplayPositionAndOffset(x, y, size) {
+    let newPosition = new Vec2(x % size, y % size)
+    let displayOffset = new Vec2(Math.floor(x / size), Math.floor(y / size))
+
+    return {displayOffset: displayOffset, x: newPosition.x, y: newPosition.y}
+}
+
+function checkTiles(x, y, size) {
+    let isOdd = (size % 2);
+    let gutter = (size - isOdd) / 2;
+    let startingPoint = new Vec2(x - gutter, y - gutter);
+
+    if (!isOdd) {
+        startingPoint.add(1, 1)
+    };
+
+    let offset = new Vec2(0, 0);
+    for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+            let build = Vars.world.build(startingPoint.x + offset.x, startingPoint.y + offset.y);
+            let tile = Vars.world.tile(startingPoint.x + offset.x, startingPoint.y + offset.y);
+            if (build != null) {
+                return true;
+            };
+            offset.y += 1;
+        };
+        offset.y = 0;
+        offset.x += 1;
+    };
 }
 
 function spiral(n, step, squishX, squishY) {
@@ -163,42 +231,8 @@ function placeCryo(centerPos) {
         offset += 4
     }
 }
-/*
-function placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset) {
 
-    while (true) {
-        let pointerBlock = Vars.world.build(startingPosition.x + cryoPos.x, startingPosition.y + cryoPos.y)
-        if (pointerBlock != null) {
-            pointerBlock = pointerBlock.block
-        } else {
-            pointerBlock = "null"
-        }
-
-        if (!((startingPoint.x + cryoPos.x > startingPosition.x - panelMin.y - Math.ceil(processorType.size / 2)  &&
-                startingPoint.x + cryoPos.x < startingPosition.x + panelMax.x + Math.ceil(processorType.size / 2)) &&
-                (startingPoint.y + cryoPos.y > startingPosition.y - panelMin.y - Math.ceil(processorType.size / 2)  &&
-                startingPoint.y + cryoPos.y < startingPosition.y + panelMax.y + Math.ceil(processorType.size / 2)))
-                ) {
-            if (pointerBlock != "hyper-processor") {
-                placeBlock(startingPosition.x + cryoPos.x, startingPosition.y + cryoPos.y, Blocks.liquidSource, Liquids.cryofluid)
-            } else {
-                cryoPos.x -= 1
-            }
-        }
-        cryoPos.x += 4
-        if (cryoPos.x > maxOffset.x) {
-            cryoPos.y += 3
-            cryoPos.x = minOffset.x - 2
-        }
-        if (cryoPos.y > maxOffset.y) {
-            break
-        }
-    }
-    
-}*/
-
-function render () {    //what the hell is this function
-
+function render () {    //    main function
     let animationInfo = queue[0]
     let startTime = Time.millis()
     let startingPosition, frame, data, displayName, compression, processorTypeStr, scale
@@ -214,10 +248,11 @@ function render () {    //what the hell is this function
         return
     }
 
-    //if (activeAnimations[0] != null) {return}
+    //if (activeAnimations[0] != null) {return} //enables queueing
 
     if (compression < 0) {
-        Log.infoTag("V2Logic", "[ERROR] Argument compression must be greater than 0")
+        Log.infoTag("v2logic", "[ERROR] Argument compression must be greater than 0")
+        Vars.ui.showInfoPopup("[ERROR] Argument compression must be greater than 0", 1, 1, 1, 1, 1, 1)
         return
     }
 
@@ -228,10 +263,11 @@ function render () {    //what the hell is this function
         animation = animationData.animation
         header = animationData.header
         totalBatches = animationData.totalBatches
-        let compressionType = header.compressed
+        //let compressionType = header.compressed
         isRaw = header.isRaw
     } catch(e) {
-        Log.infoTag("V2Logic", "[ERROR] Invalid file location?")
+        Log.infoTag("v2logic", "[ERROR] Invalid animation folder")
+        Vars.ui.showInfoPopup("[ERROR] Invalid animation folder", 1, 1, 1, 1, 1, 1)
         queue.splice(0, 1)
     }
     queue.splice(0, 1)
@@ -241,41 +277,102 @@ function render () {    //what the hell is this function
         startTime = Time.millis()
         
         let totalFrames = 0
+        let step = animation[0].step
 
         for (let i = 0; i < totalBatches; i++) {
             totalFrames += animation[i].batchSize
         };
 
-       // Log.infoTag("V2Logic", animation[0].seq[0].slice(-1)[0].slice(-1))
-
+        //    Reset log
         Vars.tree.get("logs/mlogs.txt").writeString(" ")
     
-        let step = animation[0].step
+        //    Define animation size and number of displays
+        let size = defineFrameSize(animation[0].seq[0])
+        const displaySize = 180
+        const offsetOneMult = new Vec2((size.x + 1) / size.x, (size.y + 1) / size.y)    //    Multiply pixels by this so that it fits the display
+        const displayAmount = new Vec2(Math.ceil((size.x * scale) / displaySize), Math.ceil((size.y * scale) / displaySize))
+        let displayTiles = []
 
+        //    Define the displays and their links
+        let displayLinks = []
+        let displayOffset = new Vec2(0, 0)
+        let displayCounter = 0
+        const displayStartingPosition = new Vec2(startingPosition.x + ((displayAmount.x - 1) * -6), startingPosition.y + ((displayAmount.y - 1) * -6))
 
-        const mainLinks = [
-            new LogicBlock.LogicLink(startingPosition.x, startingPosition.y, "display1", true),
+        let displayIDArray = []
+
+        for (let y = 0; y < displayAmount.y; y++) {
+            let displayIDArrayRow = []
+            for (let x = 0; x < displayAmount.x; x++) {
+                displayCounter += 1
+
+                let displayID = "display" + displayCounter
+                displayIDArrayRow.push(displayID)
+
+                displayLinks.push(new LogicBlock.LogicLink(displayStartingPosition.x + displayOffset.x, displayStartingPosition.y + displayOffset.y, displayID, true))
+                displayTiles.push({type: "block",       x: displayStartingPosition.x + displayOffset.x, y: displayStartingPosition.y + displayOffset.y, block: Blocks.largeLogicDisplay, config: undefined})
+                displayOffset.x += 6
+            }
+            displayIDArray.push(displayIDArrayRow)
+            displayOffset.x = 0
+            displayOffset.y += 6
+        }
+
+        //    Define links for graphic processors
+        let mainLinks = [
             new LogicBlock.LogicLink(startingPosition.x - 2, startingPosition.y + 4, "cell1", true),
             new LogicBlock.LogicLink(startingPosition.x + 3, startingPosition.y + 5, "cell2", true),
             new LogicBlock.LogicLink(startingPosition.x - 1, startingPosition.y + 4, "switch1", true)
         ]
 
-        const configLinks = [
+        mainLinks = mainLinks.concat(displayLinks)
+
+        //    Define links for the config processor
+        let configLinks = [
             new LogicBlock.LogicLink(startingPosition.x + 3, startingPosition.y + 5, "cell1", true),
             new LogicBlock.LogicLink(startingPosition.x - 1, startingPosition.y + 4, "switch1", true)
         ]
 
+        //    Define the starting tiles
         let startingTiles = [
-            {type: "block", x: startingPosition.x,     y: startingPosition.y,     block: Blocks.largeLogicDisplay, config: undefined},
             {type: "block", x: startingPosition.x - 2, y: startingPosition.y + 4, block: Blocks.memoryCell,        config: undefined},
             {type: "block", x: startingPosition.x - 1, y: startingPosition.y + 4, block: Blocks.switchBlock,       config: false},
-            {type: "block", x: startingPosition.x + 3, y: startingPosition.y + 4, block: Blocks.liquidSource,      config: Liquids.cryofluid},
             {type: "block", x: startingPosition.x + 3, y: startingPosition.y + 5, block: Blocks.memoryCell,        config: undefined},
-            {type: "processor", x: startingPosition.x + 3, y: startingPosition.y + 6,         block: Blocks.microProcessor, code: mlogCodes.config.replace(/_FPS_/g, animation[0].fps / step), 
-                links: configLinks}
-            
+            {type: "processor", x: startingPosition.x + 3, y: startingPosition.y + 6, block: Blocks.microProcessor, code: mlogCodes.config.replace(/_FPS_/g, animation[0].fps / step)
+                                                                                                                                          .replace(/_DISPLAYCOUNT_/g, displayAmount.x * displayAmount.y), links: configLinks},
+            {type: "block", x: startingPosition.x + 1, y: startingPosition.y + 7, block: Blocks.message,        config: "Animation name: [lime]" + animationInfo[0] + "\n\n[white]Generated using the mod: [red]ElectricGun/Video-to-Logic  version [lime]" + modVersion},
+            {type: "block", x: startingPosition.x + 3, y: startingPosition.y + 7, block: Blocks.message,        config: "Config Processor: \n\nTweak the [purple]set [white]variable values to modify the playback"}                                                                        
+                                                                                                                                          
         ]
-        /* WIP
+
+        if (processorTypeStr == "hyperProcessor") {
+            startingTiles.push({type: "block", x: startingPosition.x + 3, y: startingPosition.y + 4, block: Blocks.liquidSource,      config: Liquids.cryofluid})
+        }
+
+        //    Filler walls
+        let walls = [
+                    [1, 1, 1, 0, 1, 0],
+                    [1, 1, 1, 1, 1, 0],
+                    [1, 1, 1, 0, 1, 0],    
+                    [0, 0, 1, 1, 1, 1]
+        ].reverse()
+
+        //    Wall offset relative to startingPosition
+        const wallOffset = new Vec2(-2, 4)
+
+        //    Surround clock processor with walls
+        if (processorTypeStr == "worldProcessor" || processorTypeStr == "worldProcessor") {
+            for (let y = 0; y < walls.length; y++) {
+                for (let x = 0; x < walls[y].length; x++) {
+                    let currentWall = walls[y][x]
+                    if (currentWall == 1) {
+                        startingTiles.push({type: "block", x: startingPosition.x + wallOffset.x + x, y: startingPosition.y + wallOffset.y + y, block: Blocks.copperWall,        config: undefined})
+                    }
+                }
+            }
+        }
+
+        /*    For vram storage etc, not gonna do probably
         let graphicsTiles = [
             //    First column
             {type: "processor", x: startingPosition.x + 5, y: startingPosition.y + 5,         block: Blocks.hyperProcessor, code: "", links: mainLinks},
@@ -293,18 +390,20 @@ function render () {    //what the hell is this function
         ]
         */
 
+        //    No modded processor support, sad
         let processorTypes = {
             microProcessor: {block: Blocks.microProcessor, size: 1, squishX: 0, squishY: 0, range: 10},
             logicProcessor: {block: Blocks.logicProcessor, size: 2, squishX: 0, squishY: 0, range: 22},
             hyperProcessor: {block: Blocks.hyperProcessor, size: 4, squishX: 0.5, squishY: 1, range: 42},
-            worldProcessor: {block: Blocks.worldProcessor, size: 1, squishX: 0, squishY: 0, range: 10000}
+            worldProcessor: {block: Blocks.worldProcessor, size: 1, squishX: 0, squishY: 0, range: Vars.world.width / 2}
         }
 
         let processorType
         try{
             processorType = processorTypes[processorTypeStr]
         } catch (e) {
-            Log.infoTag("V2Logic","[ERROR] Invalid processor type argument")
+            Log.infoTag("v2logic","[ERROR] Invalid processor type")
+            Vars.ui.showInfoPopup("[ERROR] Invalid processor type", 1, 1, 1, 1, 1, 1)
             return
         }
 
@@ -315,7 +414,23 @@ function render () {    //what the hell is this function
             } else if(b.type == "processor") {
                 placeProcessor(b.x, b.y, b.block, b.code, b.links)
             } else {
-                Log.infoTag("V2Logic","[ERROR] Invalid block type... skipping")
+                Log.infoTag("v2logic","[ERROR] Invalid block type... skipping")
+                Vars.ui.showInfoPopup("[ERROR] Invalid block type... skipping", 1, 1, 1, 1, 1, 1)
+            }
+        })
+
+        //    Place logic displays
+        displayTiles.forEach(b => {
+            if (b.type == "block") {
+                try {
+                    placeBlock(b.x, b.y, b.block, b.config)
+                } catch (e) {
+                    Log.infoTag("v2logic", "[ERROR] Error when placing displays, is your animation too large?")
+                    Vars.ui.showInfoPopup("[ERROR] Error when placing displays, is your animation too large?", 5, 1, 1, 1, 1, 1)
+                }
+            } else {
+                Log.infoTag("v2logic","[ERROR] Invalid block type... skipping")
+                Vars.ui.showInfoPopup("[ERROR] Invalid block type... skipping", 1, 1, 1, 1, 1, 1)
             }
         })
 
@@ -335,8 +450,11 @@ function render () {    //what the hell is this function
         let maxColour = compression
 
         //    Min and max positions of the control panel, to prevent processors overwriting it
-        let panelMin = Vec2(2, 2)
+        let panelMin = Vec2(-2, -2)
         let panelMax = Vec2(3, 7)
+
+        panelMin.x -= (displayAmount.x - 1) * 6
+        panelMin.y -= (displayAmount.y - 1) * 6
 
         //    Define stuff
         let currProcessor = 0
@@ -353,11 +471,15 @@ function render () {    //what the hell is this function
 
         let maxOffset = Vec2(0, 0)
         let minOffset = Vec2(0, 0)
+
+        //        BEGIN PROCESSING
         
-        Vars.ui.showInfoPopup("Loading...", 1, 1, 1, 1, 1, 1)
         if (header.compressed == 1) {
 
             processorCode = ""
+
+            let displayName2
+            let spiralOffset = 0
 
             for (let i = 0; i < totalBatches; i++) {
                 let currBatch = animation[i]
@@ -365,6 +487,8 @@ function render () {    //what the hell is this function
                 let currBatchSize = currBatch.batchSize
                 
                 let frameProcessorBatchNumber = 0
+
+                let alreadyFlushedPrevious = false
 
                 for (let frame = 0; frame < currBatchSize; frame++) {
                     let currFrame = currSeq[frame]
@@ -380,7 +504,11 @@ function render () {    //what the hell is this function
 
                     //    Define frame header
                     if (globalFrame != 1) {
-                        processorCode += "drawflush display1" + "\n"
+
+                        if (alreadyFlushedPrevious == false) {
+                            processorCode += "drawflush " + displayName2 + "\n"
+                        }
+
                         processorCode += mlogCodes.frameStart.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                              .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
                                                              .replace(/_BATCH_/g, frameProcessorBatchNumber)
@@ -389,7 +517,7 @@ function render () {    //what the hell is this function
                                                              .replace(/_FRAME_/g, globalFrame) + "\n"
                     lines += 26 + 1
                     } else {
-                        processorCode += "drawflush display1" + "\n"
+                        //processorCode += "drawflush " + displayName + "\n"
                         processorCode += mlogCodes.frameHead.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                             .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
                                                             .replace(/_BATCH_/g, frameProcessorBatchNumber)
@@ -398,15 +526,82 @@ function render () {    //what the hell is this function
                     lines += 20 + 1
                     }
 
+                    let prevPixel = null
                     let prevColour = []
+                    let prevDisplayName = null
+                    let prevPixelDisplayPos = null
                     let currColCalls = 0
+                    let isNewDisplay = false
+
+                    function calculateProcessorLocation() {
+                        spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
+                        offset.x = spiralOffset.x
+                        offset.y = spiralOffset.y
+
+                        while (dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x, startingPosition.y) > processorType.range ||
+                               dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x - 2, startingPosition.y + 4) > processorType.range ||
+
+                               ((startingPoint.x + offset.x > startingPosition.x + panelMin.y - Math.ceil(processorType.size / 2) && startingPoint.x + offset.x < startingPosition.x + panelMax.x + Math.ceil(processorType.size / 2)) &&
+                                (startingPoint.y + offset.y > startingPosition.y + panelMin.y - Math.ceil(processorType.size / 2) && startingPoint.y + offset.y < startingPosition.y + panelMax.y + Math.ceil(processorType.size / 2))) ||
+
+                               (offset.x == prevOffsetX && offset.y == prevOffsetY)
+                               ) {
+
+                            spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
+                            offset.x = spiralOffset.x
+                            offset.y = spiralOffset.y
+                            spiralIteration += 1
+
+                            if ((offset.x + processorType.size > processorType.range * 4) &&
+                                (offset.y + processorType.size > processorType.range * 4)) {
+
+                                Log.infoTag("v2logic","[ERROR] Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
+                                Vars.ui.showInfoPopup("[ERROR] Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames, 1, 1, 1, 1, 1, 1)
+
+                                //    Place clock processor
+                                placeProcessor(startingPosition.x + 1, startingPosition.y + 5, processorType.block, mlogCodes.clock
+                                    .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
+
+                                //    Set max size of the processor array
+                                if (offset.x > maxOffset.x) {
+                                    maxOffset.x = offset.x
+                                }
+
+                                if (offset.y > maxOffset.y) {
+                                    maxOffset.y = offset.y
+                                }
+
+                                if (offset.x < minOffset.x) {
+                                    minOffset.x = offset.x
+                                }
+
+                                if (offset.y < minOffset.y) {
+                                    minOffset.y = offset.y
+                                }
+                                
+                                return {end: true}
+                            }
+                        }
+
+                        return {end: false}
+                    }
+
+                    //    For creating large pixels for better compression
+                    let pixelSizeMultiplier = new Vec2(1, 1)
+
                     for (let p = 0; p < currFrameLength; p++) {
                         let currPixel = currFrame[p]
                         let colour = currPixel[0]
-                        let pixelPos = Vec2(currPixel[1], currPixel[2])
+                        let pixelPos = Vec2(currPixel[1] * scale, currPixel[2] * scale)
                         let pixSize = 1 * scale
 
-                        //    Define pixel
+                        let pixelDisplayPos = defineDisplayPositionAndOffset(pixelPos.x, pixelPos.y, displaySize)
+                        let displayName = displayIDArray[pixelDisplayPos.displayOffset.y][pixelDisplayPos.displayOffset.x]
+
+                        displayName2 = displayName
+
+
+                        //    Define colour
                         let rgb = []
                         if (!isRaw) {
                             rgb = palette[colour]
@@ -414,37 +609,115 @@ function render () {    //what the hell is this function
                             rgb = colour
                         }
 
-                        //    Skip if "draw color" if colour is the same
-                        if ((!(prevColour.toString() == colour.toString())) || lines == 3 || currColCalls >= maxColour) {
-                            processorCode += "drawflush display1" + "\n"
+                        //    Find display edge pixels
+                        let isWithinImageBorder = {x0: pixelPos.x <= scale * 2,
+                            y0: pixelPos.y <= scale * 2,
+                            x1: pixelPos.x >= size.x * scale - scale * 2,
+                            y1: pixelPos.y >= size.y * scale - scale * 2}
+
+                        //    Find display edge pixels
+                        let isWithinBorder = {x0: pixelDisplayPos.x <= scale,
+                            y0: pixelDisplayPos.y <= scale,
+                            x1: pixelDisplayPos.x >= displaySize - scale, 
+                            y1: pixelDisplayPos.y >= displaySize - scale}
+
+                        //    Draw current pixel on the next display. Commented out because it creates a lot of crust for some reason
+                        /*
+                        if (pixelDisplayPos.x >= displaySize - scale || pixelDisplayPos.y >= displaySize - scale) {
+                            let nextDisplay = displayIDArray[pixelDisplayPos.displayOffset.y + (isWithinBorder.y1 ? 1 : 0)]
+                                                            [pixelDisplayPos.displayOffset.x + (isWithinBorder.x1 ? 1 : 0)]
+
+                            processorCode += "drawflush " + displayName + "\n"
+                            alreadyFlushed = true
+                            
+                            processorCode += "draw color " + rgb[0] + " " + rgb[1] + " " + rgb[2] + " 255" + "\n"
+                            processorCode += "draw rect " + ((isWithinBorder.x1) ? pixelDisplayPos.x - displaySize : pixelDisplayPos.x) + " "
+                                                          + ((isWithinBorder.y1) ? pixelDisplayPos.y - displaySize : pixelDisplayPos.y) + " " + pixSize + " " + pixSize + "\n"
+                            processorCode += "drawflush " + nextDisplay + "\n"
+
+                            lines += 4
+
+                        }
+                        */
+
+                        if (prevDisplayName == null) {
+                            prevDisplayName = displayName
+                        }
+
+
+                        //    Skip if "draw color" if colour is the same or on a new display
+                        if (((!(prevColour.toString() == colour.toString())) || lines == 3 || currColCalls >= maxColour) || (prevDisplayName != displayName)) {
+
+                            if (alreadyFlushedPrevious == false && p > 0) {
+                                processorCode += "drawflush " + prevDisplayName + "\n"
+                            }
+
                             processorCode += "draw color " + rgb[0] + " " + rgb[1] + " " + rgb[2] + " 255" + "\n"
                             currDrawCalls = 1
                             lines += 2
                             prevColour = colour
-                            currColCalls = 0
+                            prevDisplayName = displayName
+                            currColCalls = 1
                         } else {
                             currColCalls += 1
                         }
 
-                        //    Draw the pixel
-                        processorCode += "draw rect " + pixelPos.x * scale + " " + pixelPos.y * scale + " " + pixSize + " " + pixSize + "\n"
+                        let pixelMultiplier = new Vec2(1, 1)
+
+                        //print([pixelPos.x, pixelPos.y, size.x * scale - scale, size.y * scale - scale, isWithinImageBorder.x1, isWithinImageBorder.y1])
+
+                        if (isWithinImageBorder.x1) {
+                            pixelMultiplier.x *= 4
+                            //print("Image border x")  
+                        }
+
+                        if (isWithinImageBorder.y1) {
+                            pixelMultiplier.y *= 4
+                            //print("image border y")
+                        }
+
+                        //    --------------------------------Draw the pixel-----------------------------------
+                        processorCode += "draw rect " + (pixelDisplayPos.x  - (isWithinBorder.x0 ? scale : 0)) + " " + (pixelDisplayPos.y - (isWithinBorder.y0 ? scale : 0)) + " " + ((isWithinBorder.x1 || isWithinBorder.x0 ? pixSize * 2 : pixSize) * pixelMultiplier.x) + " " + ((isWithinBorder.y1 || isWithinBorder.y0 ? pixSize * 2 : pixSize) * pixelMultiplier.y) + "\n"
                         currDrawCalls += 1
                         lines += 1
+                        //    ---------------------------------------------------------------------------------
+
+                        //    Flush for new display
+
+                        let alreadyFlushed = false
+                            alreadyFlushedPrevious = false
+                        
+                        if ((prevDisplayName != displayName) && alreadyFlushed == false) {
+                            currDrawCalls = 0
+                            //processorCode += "draw color " + rgb[0] + " " + rgb[1] + " " + rgb[2] + " 255" + "\n"
+                            processorCode += "drawflush " + displayName + "\n"
+                            processorCode += "draw color " + rgb[0] + " " + rgb[1] + " " + rgb[2] + " 255" + "\n"
+                            prevDisplayName = displayName
+                            lines += 2
+                            currColCalls += 1
+                            alreadyFlushed = true
+                        }
+                        
 
                         //    Draw flush
-                        if (currDrawCalls + 1 > drawBuffer) {
+                        if ((currDrawCalls + 1 > drawBuffer) && alreadyFlushed == false) {
                             currDrawCalls = 0
-                            processorCode += "drawflush display1" + "\n"
+                            processorCode += "drawflush " + displayName + "\n"
                             lines += 1
+                            alreadyFlushed = true
+                            alreadyFlushedPrevious = true
                         }
 
                         //    Flush mlog to processor
-                        if (lines + 6 + 27 + /*extra leeway for error*/ 3 > maxLines) {
+                        if (lines + 6 + 27 /*extra room for error*/ > maxLines) {
                             currProcessor += 1
                             lines = 0
                             currDrawCalls = 0
                             frameProcessorBatchNumber += 1
-                            processorCode += "drawflush display1" + "\n"
+                            if (alreadyFlushed == false) {
+                                processorCode += "drawflush " + displayName + "\n"
+                                alreadyFlushedPrevious = true
+                            }
                             processorCode += "read frame cell1 0" + "\n"
                             processorCode += "jump _NEXTLABEL_ notEqual frame _FRAME_".replace("_FRAME_", globalFrame)
                                                                                       .replace("_NEXTLABEL_", "LABEL" + (processorFrame + 1)) + "\n"
@@ -452,89 +725,18 @@ function render () {    //what the hell is this function
                             
                             
                             //    Define processor location
+                            let thingy = calculateProcessorLocation()
 
-                            let spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
-                            offset.x = spiralOffset.x
-                            offset.y = spiralOffset.y
-
-                            while (dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x, startingPosition.y) > processorType.range ||
-                                   dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x - 2, startingPosition.y + 4) > processorType.range ||
-
-                                   ((startingPoint.x + offset.x > startingPosition.x - panelMin.y - Math.ceil(processorType.size / 2) && startingPoint.x + offset.x < startingPosition.x + panelMax.x + Math.ceil(processorType.size / 2)) &&
-                                    (startingPoint.y + offset.y > startingPosition.y - panelMin.y - Math.ceil(processorType.size / 2) && startingPoint.y + offset.y < startingPosition.y + panelMax.y + Math.ceil(processorType.size / 2))) ||
-
-                                   (offset.x == prevOffsetX && offset.y == prevOffsetY)
-                                   ) {
-
-                                spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
-                                offset.x = spiralOffset.x
-                                offset.y = spiralOffset.y
-                                spiralIteration += 1
-
-                                if ((offset.x + processorType.size > processorType.range * 4) &&
-                                    (offset.y + processorType.size > processorType.range * 4)) {
-
-                                    Log.infoTag("V2Logic","Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
-
-                                    //    Place clock processor
-                                    placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
-                                        .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
-
-                                    //    Set max size of the processor array
-                                    if (offset.x > maxOffset.x) {
-                                        maxOffset.x = offset.x
-                                    }
-
-                                    if (offset.y > maxOffset.y) {
-                                        maxOffset.y = offset.y
-                                    }
-
-                                    if (offset.x < minOffset.x) {
-                                        minOffset.x = offset.x
-                                    }
-
-                                    if (offset.y < minOffset.y) {
-                                        minOffset.y = offset.y
-                                    }
-                                    
-                                    /*
-                                    //    Place Cryofluid sources
-                                    
-                                    let cryoPos = Vec2(minOffset.x -2, minOffset.y)
-                                    if (processorTypeStr == "hyperProcessor") {
-
-                                        placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset)
-                                    }
-                                    */
-
-                                    return
-                                }
+                            if (thingy.end == true){
+                                return
                             }
-
-                            /*
-                            //    Set max size of the processor array
-                            if (offset.x > maxOffset.x) {
-                                maxOffset.x = offset.x
-                            }
-
-                            if (offset.y > maxOffset.y) {
-                                maxOffset.y = offset.y
-                            }
-
-                            if (offset.x < minOffset.x) {
-                                minOffset.x = offset.x
-                            }
-
-                            if (offset.y < minOffset.y) {
-                                minOffset.y = offset.y
-                            }*/
 
                             prevOffsetX = offset.x
                             prevOffsetY = offset.y
 
                             //    Place processor
                             processorCode = processorCode.replace(new RegExp("LABEL" + (processorFrame + 1), "g"), "LABEL0")
-                            placeProcessor(startingPoint.x + Math.floor(offset.x), startingPoint.y + Math.floor(offset.y), processorType.block, processorCode, mainLinks.slice(0, 3))
+                            placeProcessor(startingPoint.x + Math.floor(offset.x), startingPoint.y + Math.floor(offset.y), processorType.block, processorCode, mainLinks) //mark
                             if (processorTypeStr == "hyperProcessor") {
                                 placeCryo(Vec2(startingPoint.x + offset.x, startingPoint.y + offset.y))
                             }
@@ -555,7 +757,7 @@ function render () {    //what the hell is this function
                                                                   .replace(/_LOCK1LABEL_/g, "LOCK1" + processorFrame)
                                                                   .replace(/_FRAME_/g, globalFrame) + "\n"
                             processorCode += "write " + frameProcessorBatchNumber + " cell1 1" + "\n"
-                            processorCode += "draw color " + rgb[0] + " " + rgb[1] + " " + rgb[2] + " 255" + "\n"
+                            //processorCode += "draw color " + rgb[0] + " " + rgb[1] + " " + rgb[2] + " 255" + "\n"
             
                             lines += 20 + 2
                             offset.y += 3
@@ -568,114 +770,41 @@ function render () {    //what the hell is this function
 
                 if (i == totalBatches - 1) {
 
-                    //    Calculate final processor location (lazy copy and paste i know)
-                    let spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
-                    offset.x = spiralOffset.x
-                    offset.y = spiralOffset.y
-                    while (dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x, startingPosition.y) > processorType.range ||
-                    dist(startingPoint.x + offset.x, startingPoint.y + offset.y, startingPosition.x - 2, startingPosition.y + 4) > processorType.range ||
+                    //    Calculate final processor location
+                    let thingy = calculateProcessorLocation()
 
-                    ((startingPoint.x + offset.x > startingPosition.x - panelMin.y - Math.ceil(processorType.size / 2) && startingPoint.x + offset.x < startingPosition.x + panelMax.x + Math.ceil(processorType.size / 2)) &&
-                     (startingPoint.y + offset.y > startingPosition.y - panelMin.y - Math.ceil(processorType.size / 2) && startingPoint.y + offset.y < startingPosition.y + panelMax.y + Math.ceil(processorType.size / 2))) ||
-
-                    (offset.x == prevOffsetX && offset.y == prevOffsetY)
-                    ) {
-
-                        spiralOffset = spiral(spiralIteration, processorType.size, processorType.squishX, processorType.squishY)
-                        offset.x = spiralOffset.x
-                        offset.y = spiralOffset.y
-                        spiralIteration += 1
-
-                        if ((offset.x + processorType.size > processorType.range * 4) &&
-                            (offset.y + processorType.size > processorType.range * 4)) {
-
-                            /*
-                            //    Set max size of the processor array
-                            if (offset.x > maxOffset.x) {
-                                maxOffset.x = offset.x
-                            }
-
-                            if (offset.y > maxOffset.y) {
-                                maxOffset.y = offset.y
-                            }
-
-                            if (offset.x < minOffset.x) {
-                                minOffset.x = offset.x
-                            }
-
-                            if (offset.y < minOffset.y) {
-                                minOffset.y = offset.y
-                            }*/
-
-                            //    Place clock processor
-                            placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
-                                .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
-                            Log.infoTag("V2Logic","Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
-
-                            /*
-                            //    Place Cryofluid sources
-                            
-                            let cryoPos = Vec2(minOffset.x -2, minOffset.y)
-                            if (processorTypeStr == "hyperProcessor") {
-                                placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset)
-                            }
-                            */
-                            return
-                        }
+                    if (thingy.end == true){
+                        return
                     }
-
-                    /*
-                    //    Set max size of the processor array
-                    if (offset.x > maxOffset.x) {
-                        maxOffset.x = offset.x
-                    }
-
-                    if (offset.y > maxOffset.y) {
-                        maxOffset.y = offset.y
-                    }
-
-                    if (offset.x < minOffset.x) {
-                        minOffset.x = offset.x
-                    }
-
-                    if (offset.y < minOffset.y) {
-                        minOffset.y = offset.y
-                    }*/
-
-                    /*
-                    //    Place Cryofluid sources
                     
-                    let cryoPos = Vec2(minOffset.x -2, minOffset.y)
-                    if (processorTypeStr == "hyperProcessor") {
-                        placeCryo(startingPoint, cryoPos, startingPosition, panelMin, panelMax, processorType, minOffset, maxOffset)
-                    }*/
-                    
+                    //    Add final frame thingy
                     processorCode += mlogCodes.tail
                     processorCode = processorCode.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                  .replace(/_FINISHEDLABEL_/g, "FINISH" + processorFrame)
                                                  .replace(new RegExp("LABEL" + processorFrame, "g"), "LABEL0") + "\n"
 
+                    //    Flush processor output
                     if (debugMode) {
                         let prevDebug = Vars.tree.get("logs/mlogs.txt").readString() + "\n"
                         Vars.tree.get("logs/mlogs.txt").writeString(prevDebug + "CURRPROCESSOR " + currProcessor + " " + lines + " " + globalFrame + "\n" + processorCode)
                     }
 
                     //    Place final processor
-                    placeProcessor(startingPoint.x + offset.x, startingPoint.y + offset.y, processorType.block, processorCode, mainLinks.slice(0, 3))
+                    placeProcessor(startingPoint.x + offset.x, startingPoint.y + offset.y, processorType.block, processorCode, mainLinks) //mark
                     if (processorTypeStr == "hyperProcessor") {
                         placeCryo(Vec2(startingPoint.x + offset.x, startingPoint.y + offset.y))
                     }
 
                     //    Place clock processor
-                    placeProcessor(startingPosition.x + 1, startingPosition.y + 5, Blocks.hyperProcessor, mlogCodes.clock
+                    placeProcessor(startingPosition.x + 1, startingPosition.y + 5, processorType.block, mlogCodes.clock
                         .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
                     
                 }
             }
         }
     } catch (error) {
-        Log.infoTag("V2Logic",error.stack)
-        Log.infoTag("V2Logic",error);
+        Log.infoTag("v2logic",error.stack)
+        Log.infoTag("v2logic",error);
     }
 }
 
