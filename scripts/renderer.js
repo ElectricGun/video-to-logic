@@ -2,6 +2,9 @@ const modVersion = "1.03"
 
 /*TODO:
 
+    IMPORTATN VERY VERY IMPORTANT:
+        instead of placing a processor with code for every cycle, save that mlog code to an array of codes, then build the processors after.
+
     Use another thread to process to fix that annoying lag spike
 
     Fix lag when using hyper processors
@@ -232,7 +235,105 @@ function placeCryo(centerPos) {
     }
 }
 
-function render () {    //    main function
+function getProcessorType(processorTypeStr) {
+    //    No modded processor support, sad
+    let processorTypes = {
+        microProcessor: {block: Blocks.microProcessor, size: 1, squishX: 0, squishY: 0, range: 10},
+        logicProcessor: {block: Blocks.logicProcessor, size: 2, squishX: 0, squishY: 0, range: 22},
+        hyperProcessor: {block: Blocks.hyperProcessor, size: 4, squishX: 0.5, squishY: 1, range: 42},
+        worldProcessor: {block: Blocks.worldProcessor, size: 1, squishX: 0, squishY: 0, range: Vars.world.width / 2}
+    }
+
+    let processorType
+    try{
+        processorType = processorTypes[processorTypeStr]
+    } catch (e) {
+        Log.infoTag("v2logic","[ERROR] Invalid processor type")
+        Vars.ui.showInfoPopup("[ERROR] Invalid processor type", 1, 1, 1, 1, 1, 1)
+        return
+    }
+    return processorType
+}
+
+function placeWalls(startingPosition, processorTypeStr) {
+    //    Filler walls
+    let walls = [
+                [1, 1, 1, 0, 1, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 0, 1, 0],    
+                [0, 0, 1, 1, 1, 1]
+    ].reverse()
+
+    //    Wall offset relative to startingPosition
+    const wallOffset = new Vec2(-2, 4)
+
+    //    Surround clock processor with walls
+    if (processorTypeStr == "worldProcessor" || processorTypeStr == "worldProcessor") {
+        for (let y = 0; y < walls.length; y++) {
+            for (let x = 0; x < walls[y].length; x++) {
+                let currentWall = walls[y][x]
+                if (currentWall == 1) {
+                    startingTiles.push({type: "block", x: startingPosition.x + wallOffset.x + x, y: startingPosition.y + wallOffset.y + y, block: Blocks.copperWall,        config: undefined})
+                }
+            }
+        }
+    }
+}
+
+function placeStartingBlocks(startingPosition, processorTypeStr, configLinks, displayAmount, animation, animationInfo) {
+
+    //    Define the starting tiles
+    let startingTiles = [
+        {type: "block", x: startingPosition.x - 2, y: startingPosition.y + 4, block: Blocks.memoryCell,        config: undefined},
+        {type: "block", x: startingPosition.x - 1, y: startingPosition.y + 4, block: Blocks.switchBlock,       config: false},
+        {type: "block", x: startingPosition.x + 3, y: startingPosition.y + 5, block: Blocks.memoryCell,        config: undefined},
+        {type: "processor", x: startingPosition.x + 3, y: startingPosition.y + 6, block: Blocks.microProcessor, code: mlogCodes.config.replace(/_FPS_/g, animation[0].fps / animation[0].step)
+                                                                                                                                        .replace(/_DISPLAYCOUNT_/g, displayAmount.x * displayAmount.y), links: configLinks},
+        {type: "block", x: startingPosition.x + 1, y: startingPosition.y + 7, block: Blocks.message,        config: "Animation name: [lime]" + animationInfo[0] + "\n\n[white]Generated using the mod: [red]ElectricGun/Video-to-Logic  version [lime]" + modVersion},
+        {type: "block", x: startingPosition.x + 3, y: startingPosition.y + 7, block: Blocks.message,        config: "Config Processor: \n\nTweak the [purple]set [white]variable values to modify the playback"}                                                                        
+                                                                                                                                        
+    ]
+
+    if (processorTypeStr == "hyperProcessor") {
+        startingTiles.push({type: "block", x: startingPosition.x + 3, y: startingPosition.y + 4, block: Blocks.liquidSource,      config: Liquids.cryofluid})
+    }
+
+    //    Place initial blocks
+    startingTiles.forEach(b => {
+        if (b.type == "block") {
+            placeBlock(b.x, b.y, b.block, b.config)
+        } else if(b.type == "processor") {
+            placeProcessor(b.x, b.y, b.block, b.code, b.links)
+        } else {
+            Log.infoTag("v2logic","[ERROR] Invalid block type... skipping")
+            Vars.ui.showInfoPopup("[ERROR] Invalid block type... skipping", 1, 1, 1, 1, 1, 1)
+        }
+    })
+}
+
+function defineMainLinks(startingPosition) {
+    //    Define links for graphic processors
+    let mainLinks = [
+        new LogicBlock.LogicLink(startingPosition.x - 2, startingPosition.y + 4, "cell1", true),
+        new LogicBlock.LogicLink(startingPosition.x + 3, startingPosition.y + 5, "cell2", true),
+        new LogicBlock.LogicLink(startingPosition.x - 1, startingPosition.y + 4, "switch1", true)
+    ]
+
+    return mainLinks
+}
+
+function defineConfigLinks(startingPosition) {
+    //    Define links for the config processor
+    let configLinks = [
+        new LogicBlock.LogicLink(startingPosition.x + 3, startingPosition.y + 5, "cell1", true),
+        new LogicBlock.LogicLink(startingPosition.x - 1, startingPosition.y + 4, "switch1", true)
+    ]
+
+    return configLinks
+}
+
+/////////////////                  main func            ////////////////////
+function main () {
     let animationInfo = queue[0]
     let startTime = Time.millis()
     let startingPosition, frame, data, displayName, compression, processorTypeStr, scale
@@ -291,13 +392,12 @@ function render () {    //    main function
         const displaySize = 180
         const offsetOneMult = new Vec2((size.x + 1) / size.x, (size.y + 1) / size.y)    //    Multiply pixels by this so that it fits the display
         const displayAmount = new Vec2(Math.ceil((size.x * scale) / displaySize), Math.ceil((size.y * scale) / displaySize))
-        let displayTiles = []
-
         //    Define the displays and their links
         let displayLinks = []
         let displayOffset = new Vec2(0, 0)
         let displayCounter = 0
         const displayStartingPosition = new Vec2(startingPosition.x + ((displayAmount.x - 1) * -6), startingPosition.y + ((displayAmount.y - 1) * -6))
+        let displayTiles = []
 
         let displayIDArray = []
 
@@ -318,107 +418,6 @@ function render () {    //    main function
             displayOffset.y += 6
         }
 
-        //    Define links for graphic processors
-        let mainLinks = [
-            new LogicBlock.LogicLink(startingPosition.x - 2, startingPosition.y + 4, "cell1", true),
-            new LogicBlock.LogicLink(startingPosition.x + 3, startingPosition.y + 5, "cell2", true),
-            new LogicBlock.LogicLink(startingPosition.x - 1, startingPosition.y + 4, "switch1", true)
-        ]
-
-        mainLinks = mainLinks.concat(displayLinks)
-
-        //    Define links for the config processor
-        let configLinks = [
-            new LogicBlock.LogicLink(startingPosition.x + 3, startingPosition.y + 5, "cell1", true),
-            new LogicBlock.LogicLink(startingPosition.x - 1, startingPosition.y + 4, "switch1", true)
-        ]
-
-        //    Define the starting tiles
-        let startingTiles = [
-            {type: "block", x: startingPosition.x - 2, y: startingPosition.y + 4, block: Blocks.memoryCell,        config: undefined},
-            {type: "block", x: startingPosition.x - 1, y: startingPosition.y + 4, block: Blocks.switchBlock,       config: false},
-            {type: "block", x: startingPosition.x + 3, y: startingPosition.y + 5, block: Blocks.memoryCell,        config: undefined},
-            {type: "processor", x: startingPosition.x + 3, y: startingPosition.y + 6, block: Blocks.microProcessor, code: mlogCodes.config.replace(/_FPS_/g, animation[0].fps / step)
-                                                                                                                                          .replace(/_DISPLAYCOUNT_/g, displayAmount.x * displayAmount.y), links: configLinks},
-            {type: "block", x: startingPosition.x + 1, y: startingPosition.y + 7, block: Blocks.message,        config: "Animation name: [lime]" + animationInfo[0] + "\n\n[white]Generated using the mod: [red]ElectricGun/Video-to-Logic  version [lime]" + modVersion},
-            {type: "block", x: startingPosition.x + 3, y: startingPosition.y + 7, block: Blocks.message,        config: "Config Processor: \n\nTweak the [purple]set [white]variable values to modify the playback"}                                                                        
-                                                                                                                                          
-        ]
-
-        if (processorTypeStr == "hyperProcessor") {
-            startingTiles.push({type: "block", x: startingPosition.x + 3, y: startingPosition.y + 4, block: Blocks.liquidSource,      config: Liquids.cryofluid})
-        }
-
-        //    Filler walls
-        let walls = [
-                    [1, 1, 1, 0, 1, 0],
-                    [1, 1, 1, 1, 1, 0],
-                    [1, 1, 1, 0, 1, 0],    
-                    [0, 0, 1, 1, 1, 1]
-        ].reverse()
-
-        //    Wall offset relative to startingPosition
-        const wallOffset = new Vec2(-2, 4)
-
-        //    Surround clock processor with walls
-        if (processorTypeStr == "worldProcessor" || processorTypeStr == "worldProcessor") {
-            for (let y = 0; y < walls.length; y++) {
-                for (let x = 0; x < walls[y].length; x++) {
-                    let currentWall = walls[y][x]
-                    if (currentWall == 1) {
-                        startingTiles.push({type: "block", x: startingPosition.x + wallOffset.x + x, y: startingPosition.y + wallOffset.y + y, block: Blocks.copperWall,        config: undefined})
-                    }
-                }
-            }
-        }
-
-        /*    For vram storage etc, not gonna do probably
-        let graphicsTiles = [
-            //    First column
-            {type: "processor", x: startingPosition.x + 5, y: startingPosition.y + 5,         block: Blocks.hyperProcessor, code: "", links: mainLinks},
-            {type: "processor", x: startingPosition.x + 5, y: startingPosition.y + 5 - 3,     block: Blocks.hyperProcessor, code: "", links: mainLinks},
-            {type: "processor", x: startingPosition.x + 5, y: startingPosition.y + 5 - 3 - 3, block: Blocks.hyperProcessor, code: "", links: mainLinks},
-
-            //    Second column
-            {type: "processor", x: startingPosition.x + 5 + 4, y: startingPosition.y + 5,         block: Blocks.hyperProcessor, code: "", links: mainLinks},
-            {type: "processor", x: startingPosition.x + 5 + 4, y: startingPosition.y + 5 - 3,     block: Blocks.hyperProcessor, code: "", links: mainLinks},
-            {type: "processor", x: startingPosition.x + 5 + 4, y: startingPosition.y + 5 - 3 - 3, block: Blocks.hyperProcessor, code: "", links: mainLinks},
-
-            {type: "block", x: startingPosition.x + 7, y: startingPosition.y + 5, block: Blocks.liquidSource, config: Liquids.cryofluid},
-            {type: "block", x: startingPosition.x + 7, y: startingPosition.y + 5 - 3, block: Blocks.liquidSource, config: Liquids.cryofluid},
-            {type: "block", x: startingPosition.x + 7, y: startingPosition.y + 5 - 3, block: Blocks.liquidSource, config: Liquids.cryofluid}
-        ]
-        */
-
-        //    No modded processor support, sad
-        let processorTypes = {
-            microProcessor: {block: Blocks.microProcessor, size: 1, squishX: 0, squishY: 0, range: 10},
-            logicProcessor: {block: Blocks.logicProcessor, size: 2, squishX: 0, squishY: 0, range: 22},
-            hyperProcessor: {block: Blocks.hyperProcessor, size: 4, squishX: 0.5, squishY: 1, range: 42},
-            worldProcessor: {block: Blocks.worldProcessor, size: 1, squishX: 0, squishY: 0, range: Vars.world.width / 2}
-        }
-
-        let processorType
-        try{
-            processorType = processorTypes[processorTypeStr]
-        } catch (e) {
-            Log.infoTag("v2logic","[ERROR] Invalid processor type")
-            Vars.ui.showInfoPopup("[ERROR] Invalid processor type", 1, 1, 1, 1, 1, 1)
-            return
-        }
-
-        //    Place initial blocks
-        startingTiles.forEach(b => {
-            if (b.type == "block") {
-                placeBlock(b.x, b.y, b.block, b.config)
-            } else if(b.type == "processor") {
-                placeProcessor(b.x, b.y, b.block, b.code, b.links)
-            } else {
-                Log.infoTag("v2logic","[ERROR] Invalid block type... skipping")
-                Vars.ui.showInfoPopup("[ERROR] Invalid block type... skipping", 1, 1, 1, 1, 1, 1)
-            }
-        })
-
         //    Place logic displays
         displayTiles.forEach(b => {
             if (b.type == "block") {
@@ -433,6 +432,16 @@ function render () {    //    main function
                 Vars.ui.showInfoPopup("[ERROR] Invalid block type... skipping", 1, 1, 1, 1, 1, 1)
             }
         })
+        
+        const configLinks = defineConfigLinks(startingPosition)
+
+        const mainLinks = defineMainLinks(startingPosition, displayLinks).concat(displayLinks)
+
+        placeStartingBlocks(startingPosition, processorTypeStr, configLinks, displayAmount, animation, animationInfo)
+
+        placeWalls(startingPosition, processorTypeStr)
+
+        let processorType = getProcessorType(processorTypeStr) 
 
         //    Max lines per processor
         const maxLines = 1000
@@ -472,7 +481,13 @@ function render () {    //    main function
         let maxOffset = Vec2(0, 0)
         let minOffset = Vec2(0, 0)
 
+        //    Place clock processor
+        placeProcessor(startingPosition.x + 1, startingPosition.y + 5, processorType.block, mlogCodes.clock
+            .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
+
         //        BEGIN PROCESSING
+
+        let outputMlogCodes = []
         
         if (header.compressed == 1) {
 
@@ -558,10 +573,6 @@ function render () {    //    main function
                                 Log.infoTag("v2logic","[ERROR] Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames)
                                 Vars.ui.showInfoPopup("[ERROR] Sequence way too large, only " + globalFrame + " rendered out of " + totalFrames, 1, 1, 1, 1, 1, 1)
 
-                                //    Place clock processor
-                                placeProcessor(startingPosition.x + 1, startingPosition.y + 5, processorType.block, mlogCodes.clock
-                                    .replace(/_MAXFRAME_/g, globalFrame - 1), mainLinks)
-
                                 //    Set max size of the processor array
                                 if (offset.x > maxOffset.x) {
                                     maxOffset.x = offset.x
@@ -620,25 +631,6 @@ function render () {    //    main function
                             y0: pixelDisplayPos.y <= scale,
                             x1: pixelDisplayPos.x >= displaySize - scale, 
                             y1: pixelDisplayPos.y >= displaySize - scale}
-
-                        //    Draw current pixel on the next display. Commented out because it creates a lot of crust for some reason
-                        /*
-                        if (pixelDisplayPos.x >= displaySize - scale || pixelDisplayPos.y >= displaySize - scale) {
-                            let nextDisplay = displayIDArray[pixelDisplayPos.displayOffset.y + (isWithinBorder.y1 ? 1 : 0)]
-                                                            [pixelDisplayPos.displayOffset.x + (isWithinBorder.x1 ? 1 : 0)]
-
-                            processorCode += "drawflush " + displayName + "\n"
-                            alreadyFlushed = true
-                            
-                            processorCode += "draw color " + rgb[0] + " " + rgb[1] + " " + rgb[2] + " 255" + "\n"
-                            processorCode += "draw rect " + ((isWithinBorder.x1) ? pixelDisplayPos.x - displaySize : pixelDisplayPos.x) + " "
-                                                          + ((isWithinBorder.y1) ? pixelDisplayPos.y - displaySize : pixelDisplayPos.y) + " " + pixSize + " " + pixSize + "\n"
-                            processorCode += "drawflush " + nextDisplay + "\n"
-
-                            lines += 4
-
-                        }
-                        */
 
                         if (prevDisplayName == null) {
                             prevDisplayName = displayName
@@ -809,7 +801,7 @@ function render () {    //    main function
 }
 
 module.exports = {
-render: render,
+main: main,
 addToQueue: addToQueue,
 defineAnimation: defineAnimation}
 
