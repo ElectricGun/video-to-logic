@@ -13,7 +13,7 @@ function update() {
     if(!Vars.state.menu & !Vars.state.paused) {
         Commands.readMessages()
     }
-    Renderer.render()
+    Renderer.main()
 } 
 
 Events.on(ConfigEvent, () => {
