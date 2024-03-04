@@ -183,7 +183,7 @@ function placeWalls(startingPosition, processorTypeStr) {
             for (let x = 0; x < walls[y].length; x++) {
                 let currentWall = walls[y][x]
                 if (currentWall == 1) {
-                    outWalls.push({type: "block", x: startingPosition.x + wallOffset.x + x, y: startingPosition.y + wallOffset.y + y, block: Blocks.copperWall,        config: undefined})
+                    outWalls.push({type: "block", x: startingPosition.x + wallOffset.x + x, y: startingPosition.y + wallOffset.y + y, block: Blocks.copperWall, config: undefined})
                 }
             }
         }
@@ -268,6 +268,7 @@ module.exports = {
     placeProcessor: placeProcessor,
     placeBlock: placeBlock,
     defineDisplayPositionAndOffset: defineDisplayPositionAndOffset,
+    
 
 }
 
