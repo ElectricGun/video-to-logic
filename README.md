@@ -1,4 +1,4 @@
-
+﻿
 [![Github All Releases](https://img.shields.io/github/downloads/electricgun/video-to-logic/total.svg)]() <br>
 [Download the latest release.](https://github.com/ElectricGun/video-to-logic/releases/latest) <br>
 # Changelog:
@@ -7,7 +7,6 @@
 ## Coming (not) soon:
 * Framebuffer
 * Real time editing
-* Multi display support for larger animations
   
 # About:
 Converts a sequence to a Mindustry logic display animation <br> <br>
