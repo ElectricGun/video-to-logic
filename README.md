@@ -2,7 +2,7 @@
 [![Github All Releases](https://img.shields.io/github/downloads/electricgun/video-to-logic/total.svg)]() <br>
 [Download the latest release.](https://github.com/ElectricGun/video-to-logic/releases/latest) <br>
 # Changelog:
-* Added *noLock* to config processor. Set to 1 to allow processing large frames on multiple processors
+* Testing support for markers. "/v2markers args = **(medianame)**, **(maxCol**), **(scale)** <br>
   
 ## Coming (not) soon:
 * Framebuffer
