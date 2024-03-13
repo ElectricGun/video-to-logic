@@ -7,7 +7,6 @@
 ## Coming (not) soon:
 * Framebuffer
 * Real time editing
-* Multi display support for larger animations
   
 # About:
 Converts a sequence to a Mindustry logic display animation <br> <br>
