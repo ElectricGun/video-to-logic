@@ -762,12 +762,12 @@ function renderMarkers (animation, animationInfo, displayAmount, processorType, 
 
                     //    --------------------------------Draw the pixel-----------------------------------
 
-                    //processorCode += mlogCodes.markerPixelFixed + "\n"
                     processorCode += "set x " + pixelPos.x + "\n"
                     processorCode += "set y " + pixelPos.y + "\n"
                     processorCode += "op mul id x 141\nop add id id y \n"
                     processorCode += "setmarker color id %" + Color(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, 1) + "\n"
                     processorCode += mlogCodes.markerPixelTrans + "\n"
+                    //processorCode += mlogCodes.markerPixelFixed + "\n"
                     lines += 5 + 18
 
                     //    ---------------------------------------------------------------------------------

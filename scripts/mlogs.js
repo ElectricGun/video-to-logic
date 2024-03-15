@@ -7,7 +7,7 @@ const mlogs = {
         [
             /*    cell1 0 frame number
                   cell1 1 batch number
-                  cell1 2 isFinished
+                  cell1 2 isFinished    
             */
             "jump START always 0 0",
             "set Generated Using",
@@ -129,7 +129,7 @@ const mlogs = {
             "read frame cell1 0",
             "read batch cell1 1",
 
-            "setrate 25",
+            "setrate 5",
             "read noLock cell2 4",
             "jump _LOCK1LABEL_ equal noLock 1",
 
@@ -168,7 +168,7 @@ const mlogs = {
             "read frame cell1 0",
             "read batch cell1 1",
 
-            "setrate 25",
+            "setrate 5",
             "read noLock cell2 4",
             "jump _LOCK1LABEL_ equal noLock 1",
 
@@ -211,7 +211,7 @@ const mlogs = {
             "read frame cell1 0",
             "read batch cell1 1",
 
-            "setrate 25",
+            "setrate 5",
             "read noLock cell2 4",
             "jump _LOCK1LABEL_ equal noLock 1",
 
@@ -279,7 +279,14 @@ const mlogs = {
         ].join("\n"),
     markerPixelFixed:
         [
-            "setmarker pos id x y 0"
+            "op add x0 x -1",
+            "op add y0 y -1",
+            "op add y1 y 1",
+            "op add x1 x 1",
+            "setmarker posi id 0 x0 y0",
+            "setmarker posi id 1 x0 y1",
+            "setmarker posi id 2 x1 y0",
+            "setmarker posi id 3 x1 y1",
         ].join("\n"),
 
         // ID formula = (x + offset_x) * size_x + y

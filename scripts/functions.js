@@ -1,5 +1,5 @@
 const mlogCodes = require("v2logic/mlogs")
-const modVersion = "1.03"
+const modVersion = "1.2"
 
 function mulberry32(a) {
     var t = a += 0x6D2B79F5;
