@@ -1,7 +1,7 @@
-let Renderer = require("v2logic/renderer")
-let Commands
+let renderer = require("v2logic/renderer2")
+let commands
 try {
-    Commands = require("message-block-commands/message-executor")
+    commands = require("message-block-commands/message-executor")
 } catch (e) {
     throw new Error("[v2Logic] ElectricGun/message-block-commands is not installed!")
 }
@@ -11,9 +11,9 @@ const debugMode = config.debugMode
 
 function update() {
     if(!Vars.state.menu & !Vars.state.paused) {
-        Commands.readMessages()
+        commands.readMessages()
     }
-    Renderer.main()
+    renderer.main()
 } 
 
 Events.on(ConfigEvent, () => {
@@ -24,24 +24,40 @@ Events.on(TileChangeEvent, () => {
     update()
 })
 Events.on(ClientLoadEvent, () => {
-    
+    commands.setDebugMode(debugMode)
+
     //    Add command, header and the lot
-    Commands.setHeader("/", "v2logic")
-    Commands.setDebugMode(debugMode)
-    Commands.addCommand("v2logic",
+    commands.setHeader("/", "v2logic")
+    commands.addCommand("v2logic",
         [function out(messageBlock, mediaName, compression, scale, processorType) {
-        Renderer.addToQueue(mediaName, compression, scale, processorType, messageBlock)
-        },["string", "int", "int", "string"]]
+        renderer.addToQueue(mediaName, compression, scale, processorType, "classic", messageBlock)
+        }, ["string", "int", "int", "string"]]
     )
 
-    Log.infoTag("[v2Logic]", "[lime]Video to Logic has successfully loaded. [white]Please read the mod's GitHub page for more info. \n  Available commands: \n v2logic args= folderName, colourSkips, scale, processorType")
+    //    Test command
+    commands.setHeader("/", "test")
+    commands.addCommand("test",
+        [function out(messageBlock, mediaName, compression, scale, processorType) {
+        print("test")
+        }, ["string", "int", "int", "string"]]
+    )
+
+    //    Add command for v2markers
+    commands.setHeader("/", "v2markers")
+    commands.addCommand("v2markers",
+        [function out(messageBlock, mediaName, compression, scale) {
+        renderer.addToQueue(mediaName, compression, scale, "worldProcessor", "markers", messageBlock)
+        }, ["string", "int", "int"]]
+    )
+
+    Log.infoTag("[v2Logic]", "[lime]Video to Logic has successfully loaded. [white]Please read the mod's GitHub page for more info. \n  Available commands: \n /v2logic args = folderName, colourSkips, scale, processorType\n/v2markers args = folderName, colourSkips, scale")
 })
 
 /*
 Timer.schedule(() => {
     if(!Vars.state.menu & !Vars.state.paused) {
-        Commands.readMessages()
+        commands.readMessages()
     }
-    Renderer.render()
+    renderer.render()
 }, 0, .5)
 */
