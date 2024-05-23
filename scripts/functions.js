@@ -1,5 +1,5 @@
 const mlogCodes = require("v2logic/mlogs")
-const modVersion = "1.03"
+const modVersion = "1.2"
 
 function mulberry32(a) {
     var t = a += 0x6D2B79F5;
@@ -17,9 +17,13 @@ function placeBlock(x, y, block, config) {
 }
 
 function placeProcessor(x, y, block, code, links) {
+
+
     let tile = Vars.world.tile(x, y)
     tile.setBlock(block, Team.sharded)
+    
     let currProcessor = Vars.world.build(x, y)
+
     if (code != undefined) {
         currProcessor.updateCode(code)
     }
@@ -183,7 +187,7 @@ function placeWalls(startingPosition, processorTypeStr) {
             for (let x = 0; x < walls[y].length; x++) {
                 let currentWall = walls[y][x]
                 if (currentWall == 1) {
-                    outWalls.push({type: "block", x: startingPosition.x + wallOffset.x + x, y: startingPosition.y + wallOffset.y + y, block: Blocks.copperWall,        config: undefined})
+                    outWalls.push({type: "block", x: startingPosition.x + wallOffset.x + x, y: startingPosition.y + wallOffset.y + y, block: Blocks.copperWall, config: undefined})
                 }
             }
         }
@@ -253,6 +257,10 @@ function defineConfigLinks(startingPosition) {
     return configLinks
 }
 
+// ---- logging TODO ---- //
+
+function flushLog(filename, logs) {}
+
 module.exports = {
     mulberry32: mulberry32,
     defineConfigLinks: defineConfigLinks,
@@ -268,6 +276,7 @@ module.exports = {
     placeProcessor: placeProcessor,
     placeBlock: placeBlock,
     defineDisplayPositionAndOffset: defineDisplayPositionAndOffset,
+    
 
 }
 

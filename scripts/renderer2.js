@@ -1,12 +1,22 @@
 /*TODO:
 
-    CURRENT:REWRITE MAIN:
-                ITS NOT GOOD, TOO MANY ARGS
-            REWRITE RENDERER:
+    CURRENT: MAIN FUNCTION, ITS NOT GOOD, TOO MANY ARGS 
+            - REWRITE RENDERER:
                 ADD PROCESSORS PER FRAME ARGS:
                     instead of placing processors every cycle, create processor identities with undefined position values. place them afterwards using spiral
 
-    Clean up code.
+            - Clean up code.
+
+        CURRENT: Successfully generated mlog code for the cores [DONE]
+                - Now i need to place the processor cores with the code [DONE]
+             
+            CURRENT: Graphical processors successfully placed
+                - link the processors to a display and the necessary memcells
+                - debug if it actually works
+            
+            NEXT (once i get it working): Optimise the video
+                - pixel grouping, compression, etc
+                - remove redundant draw colors and draw flushes
 */
 
 
@@ -127,11 +137,11 @@ function generateGraphicProcessors (animationInfo) {
                 let processorFrame = coreData.processorFrame[c]
                 let frameProcessorBatchNumber = coreData.batchNumber[c]
 
-                coreData.processorCode[c] += "\n" + mlogCodes.frameHead.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
-                .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
-                .replace(/_BATCH_/g, frameProcessorBatchNumber)
-                .replace(/_FINISHEDLABEL_/g, "FINISH" + processorFrame)
-                .replace(/_LOCK1LABEL_/g, "LOCK1" + processorFrame)
+                coreData.processorCode[c] += "\n" + mlogCodes.frameHead.replace(/_PREVLABEL_/g, "LABEL" + coreData.processorFrame[c])
+                .replace(/_NEXTLABEL_/g, "LABEL" + (coreData.processorFrame[c] + 1))
+                .replace(/_BATCH_/g, coreData.batchNumber[c])
+                .replace(/_FINISHEDLABEL_/g, "FINISH" + coreData.processorFrame[c])
+                .replace(/_LOCK1LABEL_/g, "LOCK1" + coreData.processorFrame[c])
                 .replace(/_FRAME_/g, globalFrame) + "\n"
 
                 // unhardcode
@@ -152,20 +162,20 @@ function generateGraphicProcessors (animationInfo) {
 
                     // ---- draw the pixel -----------------------
                     
-                    /*
+                    
                     coreData.processorCode[c] += "draw color " + pixelColour[0] + " " + pixelColour[1] + " " + pixelColour[2] + " 255" + "\n"
                                                     +  "draw rect " + (pixelPosition.x) + " " + (pixelPosition.y) + " " + (pixelPosition.x + 1) + " " + (pixelPosition.y + 1) + "\n"
                                                     // unhardcode
                                                     +  "drawflush " + "display1" + "\n" 
                     // unhardcode
                     coreData.lines[c] += 3
-                    */
+                    
                     
 
                     // for testing only ------------------------ #
                     
-                    coreData.processorCode[c] += "draw color " + pixelColour[0] + " " + pixelColour[1] + " " + pixelColour[2] + " 255" + "\n"
-                    coreData.lines[c] += 1
+                    //coreData.processorCode[c] += "draw color " + pixelColour[0] + " " + pixelColour[1] + " " + pixelColour[2] + " 255" + "\n"
+                    //coreData.lines[c] += 1
 
                     // print("Pixel:" + currentPixel + " Core: " + c + " Pixel Index: " + currentFrame.indexOf(currentPixel))
 
@@ -180,10 +190,10 @@ function generateGraphicProcessors (animationInfo) {
 
                         coreData.processorCode[c] += "\nread frame cell1 0" + "\n"
                         coreData.processorCode[c] += "jump _NEXTLABEL_ notEqual frame _FRAME_".replace("_FRAME_", globalFrame)
-                                                                                  .replace("_NEXTLABEL_", "LABEL" + (processorFrame + 1)) + "\n"
-                        coreData.processorCode[c] += "write " + frameProcessorBatchNumber + " cell1 1" + "\n"
+                                                                                  .replace("_NEXTLABEL_", "LABEL" + (coreData.processorFrame[c] + 1)) + "\n"
+                        coreData.processorCode[c] += "write " + coreData.batchNumber[c] + " cell1 1" + "\n"
                                                         
-                        coreData.processorCode[c] = coreData.processorCode[c].replace(new RegExp("LABEL" + (processorFrame + 1), "g"), "LABEL0")
+                        coreData.processorCode[c] = coreData.processorCode[c].replace(new RegExp("LABEL" + (coreData.processorFrame[c] + 1), "g"), "LABEL0")
 
                         if (config.debugMode) {
                             let prevDebug = Vars.tree.get("logs/mlogs.txt").readString() + "\n"
@@ -192,18 +202,23 @@ function generateGraphicProcessors (animationInfo) {
                                 " ProcessorType: " + processorType.block + 
                                 " Core: " + c + 
                                 " Lines: " + coreData.lines[c] + 
-                                " FrameCount: " + ((globalFrame - processorFrame) + 1) +
-                                " StartFrame: " + processorFrame +
+                                " FrameCount: " + ((globalFrame - processorStartFrame) + 1) +
+                                " StartFrame: " + processorStartFrame +
                                 " EndFrame: " + globalFrame + "\n"
-                                + "```{mlog}\n" 
+                                + "```{mlog}" 
                                 + coreData.processorCode[c]) // the mlog
                                 + "```"
                         }
 
-                        processorIdentities.push(createProcessorIdentity(Vec2(0, 0),  processorType.block, coreData.lines[c], mainLinks))
+                        processorIdentities.push(createProcessorIdentity(Vec2(0, 0),  processorType.block, coreData.processorCode[c], mainLinks))
                         coreData.processorFrame[c] = 0
                         coreData.lines[c] = 0
-                        coreData.processorCode[c] = ""
+                        coreData.processorCode[c] = "\n" + mlogCodes.frameHead.replace(/_PREVLABEL_/g, "LABEL" + coreData.processorFrame[c])
+                        .replace(/_NEXTLABEL_/g, "LABEL" + (coreData.processorFrame[c] + 1))
+                        .replace(/_BATCH_/g, coreData.batchNumber[c])
+                        .replace(/_FINISHEDLABEL_/g, "FINISH" + coreData.processorFrame[c])
+                        .replace(/_LOCK1LABEL_/g, "LOCK1" + coreData.processorFrame[c])
+                        .replace(/_FRAME_/g, globalFrame) + "\n"
 
                         currentProcessor += 1
                         coreData.batchNumber[c] += 1
@@ -218,30 +233,12 @@ function generateGraphicProcessors (animationInfo) {
 }
 
 function assignLinksAndShite(processorIdentities) {
-    // -1: occupied, 0: empty, 1: display, 2: memcell, 3: processor 
-
-    // unhardcode    define placed objects
-    let blocks = [
-        [-1, -1, -1, -1, -1, -1],
-        [-1, -1, -1, -1, -1, -1],
-        [-1, -1, -1, -1, -1, -1],
-        [-1, -1, -1, -1, -1, -1],
-        [-1, -1, -1, -1, -1, -1],
-        [ 1, -1, -1, -1, -1, -1],
-    ].reverse()
-    
-    // unhardcode    define boundaries
-
-    let boundaries = {
-        x: 12,
-        y: 12
-    }
-
     // unhardcode     define links
     
     let displayLinks = []
     displayLinks.push(new LogicBlock.LogicLink(0, 0, "display1", true))
 
+    /*
     // set positions 
 
     let spiralCounter = 0
@@ -278,20 +275,8 @@ function assignLinksAndShite(processorIdentities) {
         processorIdentities[i] = currentProcessorIdentity
         spiralCounter ++
     }
-    
+    */
     return processorIdentities
-}
-
-function placeProcessors(processorIdentities) {
-    processorIdentities.forEach(procObject => {
-        functions.placeProcessor(
-            procObject.positionX, 
-            procObject.positionY, 
-            procObject.type, 
-            procObject.links, 
-            procObject.code
-        )
-    })
 }
 
 function main () {
@@ -310,8 +295,11 @@ function main () {
     if (compression < 0) {
         Log.infoTag("v2logic", "[ERROR] Argument compression must be greater than 0")
         Vars.ui.showInfoPopup("[ERROR] Argument compression must be greater than 0", 1, 1, 1, 1, 1, 1)
+        queue.splice(0, 1)
         return
     }
+
+    queue.splice(0, 1)
 
     let displayName = (startingPosition.x * Vars.world.height() + startingPosition.y).toString(16).slice(2)
     activeAnimations.splice(-1, 0, displayName)
@@ -327,13 +315,56 @@ function main () {
         processorIdentities = assignLinksAndShite(processorIdentities)
 
     // place processors
-    
-    placeProcessors(processorIdentities)
 
+    // -1: occupied, 0: empty, 1: display, 2: memcell, 3: processor 
+
+    // unhardcode    define placed objects
+    let blocks = [
+        [-1, -1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1, -1],
+        [ 1, -1, -1, -1, -1, -1],
+    ].reverse()
+    
+    // unhardcode    define boundaries
+
+    let boundaries = {
+        x: 12,
+        y: 12
+    }
+
+    let spiralIteration = 0
+
+    // unhardcode to allow for other processor types and put the function outside the block
+    function getSpiralCoords (iteration) {
+        let coords = functions.spiral(iteration, 1, 0, 0)
+        coords.x += startingPosition.x
+        coords.y += startingPosition.y
+        return coords
+    }
+
+
+
+    processorIdentities.forEach(procObject => {
+        let procCoords = getSpiralCoords(spiralIteration)
+        functions.placeProcessor(
+            procCoords.x, 
+            procCoords.y, 
+            procObject.type, 
+            procObject.code,
+            procObject.links,
+
+        )
+        Core.app.setClipboardText(procObject.code)
+        spiralIteration++
+    })
+    
     // ------------------- end process ------------------------
 
     // print time taken
-    print("Time taken: " + startTime - Time.millis())
+    print("Time taken: " + (Time.millis() - startTime) + "ms")
 }
 
 /*
