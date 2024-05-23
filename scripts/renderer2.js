@@ -357,7 +357,7 @@ function main () {
             procObject.links,
 
         )
-        Core.app.setClipboardText(procObject.code)
+        //Core.app.setClipboardText(procObject.code)
         spiralIteration++
     })
     
