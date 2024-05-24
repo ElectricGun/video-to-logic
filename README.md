@@ -1,12 +1,17 @@
 
 [![Github All Releases](https://img.shields.io/github/downloads/electricgun/video-to-logic/total.svg)]() <br>
 [Download the latest release.](https://github.com/ElectricGun/video-to-logic/releases/latest) <br>
-# Changelog:
-* Added *noLock* to config processor. Set to 1 to allow processing large frames on multiple processors
-  
-## Coming (not) soon:
-* Framebuffer
-* Real time editing
+# Version 2.0 Changelog
+* Rewritten the entire renderer code to be more readable and optimised
+* Added MULTICORE GRAPHICS PROCESSING: blazingly fast renders via load distribution, may cause lag if the animation is massive and the core amount is high. (core amount is currently hardcoded)
+* Changed layout, idk whether or not its better tbh (currently only supports one large display) 
+
+# Todo
+* Unhardcode the variables in the code
+* Multi display support
+* Support for different processor types
+* The graphical calls are currently rudimentary and extremely unoptimised, fix them
+* Better compression for render speed
   
 # About:
 Converts a sequence to a Mindustry logic display animation <br> <br>
