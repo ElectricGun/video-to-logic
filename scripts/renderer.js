@@ -16,9 +16,12 @@ TODO:
                 - link the processors to a display and the necessary memcells {DONE}
                 - debug if it actually works [DONE]
             
-            CURRENT: Optimise the video
+            CURRENT: Optimise the video, etc
                 - pixel grouping, compression, etc
                 - remove redundant draw colors and draw flushes
+                - add refreshesPerSecond functionality
+            
+            
 
 ISSUES:
 
@@ -26,6 +29,8 @@ ISSUES:
         - The graphics processors are drawing even when the switch is turned off
         - Unoptimised
         - lots of crust on high ipt
+
+        - Somethings up with how the frames are generated (last few frames arent being generated for some reason)
 
     FIXED ISSUES:
         - The video is extremely buggy, the monkey is drawn and is visible on some frames but most of the time its just a mess. [FIXED, turns out i set the width and height to x + 1 and y + 1 respectively, oopsies]
@@ -35,14 +40,14 @@ ISSUES:
 const functions = require("v2logic/functions")
 const config = JSON.parse(Jval.read(Vars.tree.get("data/config.hjson").readString()))
 const mlogCodes = require("v2logic/mlogs")
-// const { markerPixelTrans } = require("./mlogs") // what is this line 
+// const { markerPixelTrans } = require("./mlogs") // what is this line?
 
 const palette = [
-    [217, 157, 115], [140, 127, 169], [235, 238, 245], [149, 171, 217], //copper, lead, metaglass, graphite
-    [247, 203, 164], [39, 39, 39], [141, 161, 227], [249, 163, 199],    //sand, coal, titanium, thorium
-    [119, 119, 119], [83, 86, 92], [203, 217, 127], [244, 186, 110],    //scrap, silicon, plastanium, phase
-    [243, 233, 121], [116, 87, 206], [255, 121, 94], [255, 170, 95],    //surge, spore, blast, pyratite
-    [58, 143, 100], [118, 138, 154], [227, 255, 214], [137, 118, 154],  //beryllium, tungsten, oxide, carbide
+    [217, 157, 115], [140, 127, 169], [235, 238, 245], [149, 171, 217], //copper,        lead,       metaglass,  graphite
+    [247, 203, 164], [39, 39, 39], [141, 161, 227], [249, 163, 199],    //sand,          coal,       titanium,   thorium
+    [119, 119, 119], [83, 86, 92], [203, 217, 127], [244, 186, 110],    //scrap,         silicon,    plastanium, phase
+    [243, 233, 121], [116, 87, 206], [255, 121, 94], [255, 170, 95],    //surge,         spore,      blast,      pyratite
+    [58, 143, 100], [118, 138, 154], [227, 255, 214], [137, 118, 154],  //beryllium,     tungsten,   oxide,      carbide
     [94, 152, 141], [223, 130, 77]                                      //fissileMatter, dormantCyst
 ]
 
@@ -85,7 +90,7 @@ function createProcessorIdentity(position, type, code, links) {
 
 function generateGraphicProcessors (commandInfo, animationData) {
     let processorIdentities = []
-    // unhardcode
+    // unhardcode processor
     let processorType = functions.getProcessorType("worldProcessor")
     let mainLinks = ""
 
@@ -103,7 +108,9 @@ function generateGraphicProcessors (commandInfo, animationData) {
     //const displayAmount = new Vec2(Math.ceil((size.x * scale) / displaySize), Math.ceil((size.y * scale) / displaySize))
 
     // unhardcode cores
-    let cores = 12
+    let cores = 16
+
+    const drawBufferSize = 255
     
     let globalFrame = 0
     let currentProcessor = 0
@@ -112,7 +119,10 @@ function generateGraphicProcessors (commandInfo, animationData) {
         processorCode: [],
         processorFrame: [],
         lines: [],
-        batchNumber: []
+        drawCalls: [],
+        drawColourCalls: [],
+        batchNumber: [],
+        isAlreadyFlushed: []
     }
 
     for (let i = 0; i < cores; i++) {
@@ -120,9 +130,14 @@ function generateGraphicProcessors (commandInfo, animationData) {
         coreData.processorFrame[i] = 0
         coreData.lines[i] = 0
         coreData.batchNumber[i] = 0
+        coreData.drawCalls[i] = 0
+        coreData.drawColourCalls[i] = 0
+        coreData.isAlreadyFlushed[i] = false
     }
 
     let scale = commandInfo[4]
+
+    
 
     // for every batch
     for (let i = 0; i < totalBatches; i++) {
@@ -130,6 +145,11 @@ function generateGraphicProcessors (commandInfo, animationData) {
         
         // for every frame
         for (let f = 0; f < currentBatch.batchSize; f++) {
+
+            let frameDrawCalls = 0;
+
+            print(globalFrame)
+            
 
             // reset batchnumbers
             for (let b = 0; b < cores; b++) {
@@ -144,11 +164,26 @@ function generateGraphicProcessors (commandInfo, animationData) {
             // for every core
             for (let c = 0; c < cores; c++) {
 
+                function writeFlush(displayNameString) {
+                    coreData.processorCode[c] +=  "drawflush " + displayNameString + "\n"
+                    coreData.isAlreadyFlushed[c] = true
+                    coreData.lines[c] += 1
+                    coreData.drawCalls[c] = 0
+                    frameDrawCalls = 0
+                }
+
                 let processorPixelCount = 0
                 let processorStartFrame = globalFrame
 
                 let processorFrame = coreData.processorFrame[c]
                 let frameProcessorBatchNumber = coreData.batchNumber[c]
+
+                // ----------- create the header of each frame
+
+                if (!coreData.isAlreadyFlushed[c]) {
+                    // unhardcode name after multi display
+                    writeFlush("display1")
+                }
 
                 coreData.processorCode[c] += "\n" + mlogCodes.frameHead.replace(/_PREVLABEL_/g, "LABEL" + coreData.processorFrame[c])
                 .replace(/_NEXTLABEL_/g, "LABEL" + (coreData.processorFrame[c] + 1))
@@ -157,8 +192,14 @@ function generateGraphicProcessors (commandInfo, animationData) {
                 .replace(/_LOCK1LABEL_/g, "LOCK1" + coreData.processorFrame[c])
                 .replace(/_FRAME_/g, globalFrame) + "\n"
 
+                
+                // unhardcode name after multi display
+                writeFlush("display1")
+
                 // unhardcode
                 coreData.lines[c] += 27
+
+                // ----------------------------------------------
 
                 // for every pixel
                 for (let p = framePixelIndex; p < (c != cores - 1 ? pixelsPerCore * (c + 1) : currentFrame.length); p++) {
@@ -174,16 +215,26 @@ function generateGraphicProcessors (commandInfo, animationData) {
                     }
 
                     // ---- draw the pixel -----------------------
+
                     
                     
+                    coreData.isAlreadyFlushed[c] = false
+
+
                     coreData.processorCode[c] += "draw color " + pixelColour[0] + " " + pixelColour[1] + " " + pixelColour[2] + " 255" + "\n"
                                                     +  "draw rect " + (pixelPosition.x * scale) + " " + (pixelPosition.y * scale) + " " + (scale) + " " + (scale) + "\n"
-                                                    // unhardcode
-                                                    +  "drawflush " + "display1" + "\n" 
+                                                    
+                                                    
                     // unhardcode
-                    coreData.lines[c] += 3
-                    
-                    
+                    coreData.lines[c]  += 2
+                    coreData.drawCalls[c] += 2
+                    frameDrawCalls += 2
+
+                    if (frameDrawCalls > (drawBufferSize / cores) | true) {
+                        // unhardcode name after multi display
+                        writeFlush("display1")
+                    }
+
 
                     // for testing only ------------------------ #
                     
@@ -201,9 +252,14 @@ function generateGraphicProcessors (commandInfo, animationData) {
                     // unhardcode
                     if (coreData.lines[c] >= 900) {
 
+                        if (!coreData.isAlreadyFlushed[c]) {
+                            // unhardcode name after multi display
+                            writeFlush("display1")
+                        }
+
                         coreData.processorCode[c] += "\nread frame cell1 0" + "\n"
                         coreData.processorCode[c] += "jump _NEXTLABEL_ notEqual frame _FRAME_".replace("_FRAME_", globalFrame)
-                                                                                  .replace("_NEXTLABEL_", "LABEL" + (coreData.processorFrame[c] + 1)) + "\n"
+                                                                                              .replace("_NEXTLABEL_", "LABEL" + (coreData.processorFrame[c] + 1)) + "\n"
                         coreData.processorCode[c] += "write " + coreData.batchNumber[c] + " cell1 1" + "\n"
                                                         
                         coreData.processorCode[c] = coreData.processorCode[c].replace(new RegExp("LABEL" + (coreData.processorFrame[c] + 1), "g"), "LABEL0")
@@ -282,7 +338,7 @@ function assignLinksAndShite(processorIdentities, schemeArray, centerPosition) {
 function placeSchemeArray(schemeArray, centerPosition, animation) {
     for (let y = 0; y < schemeArray.length; y++) {
         for (let x = 0; x < schemeArray[0].length; x++) {
-            print(schemeArray[y][x] + " " + (centerPosition.x + x) + " " + (centerPosition.y + y))
+            //print(schemeArray[y][x] + " " + (centerPosition.x + x) + " " + (centerPosition.y + y))
             switch(schemeArray[y][x]) {
 
                 // unhardcode change hardcoded linknames if possible
