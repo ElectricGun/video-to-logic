@@ -1,5 +1,6 @@
 const mlogCodes = require("v2logic/mlogs")
-const modVersion = "2.1"
+const config = JSON.parse(Jval.read(Vars.tree.get("data/config.hjson").readString()))
+const modVersion = config.rendererVersion
 
 function mulberry32(a) {
     var t = a += 0x6D2B79F5;
