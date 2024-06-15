@@ -1,25 +1,27 @@
 /*
-    Templates for processors 
+    Templates for processors
+
+
+    TODO: signal processors to stop rendering again when noLock is 1 before the next frame starts
 */
 
 const mlogs = {
     clock:
         [
-            /*    cell1 0 frame number
-                  cell1 1 batch number
-                  cell1 2 isFinished    
+            /*    cell1 0       = frame number
+                  cell1 2:n = isFinished per processor per frame
             */
             "jump START always 0 0",
             "set Generated Using",
             "set Mod ElectricGun/Video-to-Logic ",
 
-                "START:",
-            "setrate 100",
+            "START:",
+            "setrate 1000",
             "sensor enabled switch1 @enabled",
             "jump OFF equal enabled false",
             "set startTime @time",
 
-                "HERE:",
+            "HERE:",
 
             "read FPS cell2 3",
             "op div period 1 FPS",
@@ -31,7 +33,8 @@ const mlogs = {
             "op add frame frame 1",
 
             // for testing
-                "AMONG:",
+            /*
+            "AMONG:",
 
             "read forceRender cell2 2",
             "jump FORCERENDER equal forceRender 1",
@@ -40,23 +43,28 @@ const mlogs = {
             "read impostor cell1 2",
             "jump AMONG notEqual impostor 1 ",
             
-                "SUS:",
-
+            "SUS:",
             "FORCERENDER:",
+            */
             // ---
-
+                "write 1 cell1 1",
+                "set reset_index 3",
+                "set reset_amount 64",
+                "RESET_FINISHED_LOOP:",
+                "write 0 cell1 reset_index",
+                "op add reset_index reset_index 1",
+                "jump RESET_FINISHED_LOOP lessThanEq reset_index reset_amount",
             "write frame cell1 0",
             "write 0 cell1 1",
-            "write 0 cell1 2",
 
             "jump END lessThan frame _MAXFRAME_",
             "set frame 0",
 
-                "END:",
+            "END:",
 
             "end",
             
-                "OFF:",
+            "OFF:",
 
             "setrate 1000",
 
@@ -64,10 +72,18 @@ const mlogs = {
             "op add displayCounter displayCounter 1",
 
             "read displayCount cell2 5",
-            "set frame 0",
-            "write 0 cell1 0",
+            "set frame -4",
+
+                "write 1 cell1 1",
+                "set reset_index 3",
+                "set reset_amount 64",
+                "RESET_FINISHED_LOOP2:",
+                "write 0 cell1 reset_index",
+                "op add reset_index reset_index 1",
+                "jump RESET_FINISHED_LOOP2 lessThanEq reset_index reset_amount",
+            "write frame cell1 0",
             "write 0 cell1 1",
-            "write 0 cell1 2",
+
             "draw clear 0 0 0",
 
             "op add displayCount2 displayCount 3",
@@ -111,6 +127,7 @@ const mlogs = {
             "write offset_x cell1 6",
             "write offset_y cell1 7",
         ].join("\n"),
+    /*
     frameStart:
         [
             "op add counter counter 1",
@@ -146,65 +163,54 @@ const mlogs = {
             "jump _NEXTLABEL_ notEqual frame _FRAME_",
             "read ipt cell2 0",
             "setrate ipt",
-            /*
-
-            "read ipt cell2 0",
-            "setrate ipt",
-
-            "read isFinished cell1 2",
-            "jump _NEXTLABEL_ equal isFinished 1",
-            "read batch cell1 1",
-            "jump _NEXTLABEL_ notEqual batch _BATCH_",
-            "read frame cell1 0",
-            "jump _NEXTLABEL_ notEqual frame _FRAME_",
-*/
+            "op div fps_scale ipt 16.7",
+            "op div timeout 1 fps_scale",
 
             "write 0 cell1 2"
             //    insert frame
         ].join("\n"),
+        */
     frameHead:
         [
-                "_PREVLABEL_:",
-
-            "read isFinished cell1 2",
+                "_PREVLABEL_:"  + "\n" +
+                
             "read frame cell1 0",
-            "read batch cell1 1",
+            //"read batch cell1 1",
 
             //"setrate 5",
             "read noLock cell2 4",
-            "jump _LOCK1LABEL_ equal noLock 1",
-
-            "read isFinished cell1 2",
-            "jump _NEXTLABEL_ equal isFinished 1",
-            "read batch cell1 1",
-            "jump _NEXTLABEL_ notEqual batch _BATCH_",
-            "read frame cell1 0",
-            
-                "_LOCK1LABEL_:",
-
-            "jump _NEXTLABEL_ notEqual frame _FRAME_",
-            "read ipt cell2 0",
-            "setrate ipt",
-
-            /*
-            "read ipt cell2 0",
-            "setrate ipt",
-            "read noLock cell2 4",
             "jump _LOCK2LABEL_ equal noLock 1",
 
-            "read isFinished cell1 2",
-            "jump _NEXTLABEL_ equal isFinished 1",
-            "read batch cell1 1",
-            "jump _NEXTLABEL_ notEqual batch _BATCH_",
+            "op sub previous_memory_index _PROCESSOR_MEMORY_INDEX_ 1",
+            "read previous_is_finished cell1 previous_memory_index",
+
+            "jump _LOCK1LABEL_ equal _PROCESSOR_MEMORY_INDEX_ 3",
+            "read unsafe cell1 1",
+            "jump _NEXTLABEL_ equal unsafe 1",
+
+            "jump _NEXTLABEL_ notEqual previous_is_finished 1"  + "\n" +
+            
+            "_LOCK1LABEL_:",
+
+            "read isFinished cell1 _PROCESSOR_MEMORY_INDEX_",
+            "jump _NEXTLABEL_ equal isFinished 1" + "\n" +
+
+            "_LOCK2LABEL_:",
+
             "read frame cell1 0",
 
-                "_LOCK2LABEL_:",
-
             "jump _NEXTLABEL_ notEqual frame _FRAME_",
-*/
-            "write 0 cell1 2"
+            "read ipt cell2 0",
+            "setrate ipt",
+            "op div fps_scale ipt 1000",
+            "op mul timeout 0.0166 fps_scale",
+
+            "write -1 cell1 " + "_PROCESSOR_MEMORY_INDEX_"
+
+            //"write 0 cell1 2"
             //    insert frame
-        ].join("\n"),
+        ],
+        /*
     frameWithin: // wtf this is literally the same
         [
                 "_PREVLABEL_:",
@@ -228,21 +234,14 @@ const mlogs = {
             "jump _NEXTLABEL_ notEqual frame _FRAME_",
             "read ipt cell2 0",
             "setrate ipt",
+            "op div fps_scale ipt 16.7",
+            "op div timeout 1 fps_scale",
 
-            /*
-            "read ipt cell2 0",
-            "setrate ipt",
-
-            "read isFinished cell1 2",
-            "jump _NEXTLABEL_ equal isFinished 1",
-            "read batch cell1 1",
-            "jump _NEXTLABEL_ notEqual batch _BATCH_",
-            "read frame cell1 0",
-            "jump _NEXTLABEL_ notEqual frame _FRAME_",
-*/
             "write 0 cell1 2"
             //    insert frame
         ].join("\n"),
+        */
+       /*
     frameNull:
         [
             ""
@@ -259,7 +258,8 @@ const mlogs = {
 
             "write 0 cell1 1",  //reset batch
         ].join("\n"),
-
+        
+        /*
 
         /*--------------v2marker---------------*/
 

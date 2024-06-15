@@ -15,6 +15,9 @@
             -Add checking of tiles to prevent overwriting memcells.
 */
 
+/*
+
+
 
 const Functions = require("v2logic/functions")
 const config = JSON.parse(Jval.read(Vars.tree.get("data/config.hjson").readString()))
@@ -683,7 +686,9 @@ function renderMarkers (animation, animationInfo, displayAmount, processorType, 
                 let drawBuffer = drawBufferFactor / (currFrameLength / maxLines)
 
                 //    Define frame header
-                if (/*globalFrame != 1*/ true) {
+                if (
+                    //globalFrame != 1
+                    true) {
 
                     processorCode += mlogCodes.frameStart.replace(/_PREVLABEL_/g, "LABEL" + processorFrame)
                                                          .replace(/_NEXTLABEL_/g, "LABEL" + (processorFrame + 1))
@@ -830,3 +835,6 @@ module.exports = {
 main: main,
 addToQueue: addToQueue,
 defineAnimation: defineAnimation}
+
+
+*/
