@@ -30,27 +30,28 @@ Events.on(ClientLoadEvent, () => {
     commands.setHeader("/", "v2logic")
     commands.addCommand("v2logic",
         [function out(messageBlock, mediaName, compression, scale, processorType) {
-        renderer.addToQueue(mediaName, compression, scale, processorType, "classic", messageBlock)
+            renderer.addToQueue(mediaName, compression, scale, processorType, "classic", messageBlock)
         }, ["string", "int", "int", "string"]]
     )
 
     //    Test command
     commands.setHeader("/", "test")
     commands.addCommand("test",
-        [function out(messageBlock, mediaName, compression, scale, processorType) {
-        print("test")
-        }, ["string", "int", "int", "string"]]
+        [function out(messageBlock) {
+            print(messageBlock + " HOG RIDAAA")
+        }, []]
     )
 
     //    Add command for v2markers
     commands.setHeader("/", "v2markers")
     commands.addCommand("v2markers",
         [function out(messageBlock, mediaName, compression, scale) {
-        renderer.addToQueue(mediaName, compression, scale, "worldProcessor", "markers", messageBlock)
+            renderer.addToQueue(mediaName, compression, scale, "worldProcessor", "markers", messageBlock)
         }, ["string", "int", "int"]]
     )
 
     Log.infoTag("[v2Logic]", "[lime]Video to Logic has successfully loaded. [white]Please read the mod's GitHub page for more info. \n  Available commands: \n /v2logic args = folderName, colourSkips, scale, processorType\n/v2markers args = folderName, colourSkips, scale")
+    // Vars.ui.showInfoPopup("", 1, 1, 1, 1, 1, 1)
 })
 
 /*

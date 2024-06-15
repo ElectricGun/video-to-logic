@@ -2,13 +2,6 @@ const mlogCodes = require("v2logic/mlogs")
 const config = JSON.parse(Jval.read(Vars.tree.get("data/config.hjson").readString()))
 const modVersion = config.rendererVersion
 
-function mulberry32(a) {
-    var t = a += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  }
-
 function placeBlock(x, y, block, config) {
     let tile = Vars.world.tile(x, y)
     tile.setBlock(block, Team.sharded)
@@ -64,37 +57,6 @@ function defineFrameSize(animationFrame) {    //   O(n) where n = number of pixe
     return {x: x, y: y}
 }
 
-function defineDisplayPositionAndOffset(x, y, size) {
-    let newPosition = new Vec2(x % size, y % size)
-    let displayOffset = new Vec2(Math.floor(x / size), Math.floor(y / size))
-
-    return {displayOffset: displayOffset, x: newPosition.x, y: newPosition.y}
-}
-
-function checkTiles(x, y, size) {
-    let isOdd = (size % 2);
-    let gutter = (size - isOdd) / 2;
-    let startingPoint = new Vec2(x - gutter, y - gutter);
-
-    if (!isOdd) {
-        startingPoint.add(1, 1)
-    };
-
-    let offset = new Vec2(0, 0);
-    for (let i = 0; i < size; i++) {
-        for (let j = 0; j < size; j++) {
-            let build = Vars.world.build(startingPoint.x + offset.x, startingPoint.y + offset.y);
-            let tile = Vars.world.tile(startingPoint.x + offset.x, startingPoint.y + offset.y);
-            if (build != null) {
-                return true;
-            };
-            offset.y += 1;
-        };
-        offset.y = 0;
-        offset.x += 1;
-    };
-}
-
 function spiral(n, step, squishX, squishY) {
     let dist = 0
     let dir = 0    //0 right, 1 up, 2 left, 3 down
@@ -129,6 +91,29 @@ function spiral(n, step, squishX, squishY) {
     return {x: outX, y: outY}
 }
 
+function getProcessorType(processorTypeStr) {
+
+    //    No modded processor support yet, sad
+    let processorTypes = {
+        microProcessor: {block: Blocks.microProcessor, size: 1, squishX: 0, squishY: 0, range: 10},
+        logicProcessor: {block: Blocks.logicProcessor, size: 2, squishX: 0, squishY: 0, range: 22},
+        hyperProcessor: {block: Blocks.hyperProcessor, size: 4, squishX: 0.5, squishY: 1, range: 42},
+        worldProcessor: {block: Blocks.worldProcessor, size: 1, squishX: 0, squishY: 0, range: Vars.world.width / 2}
+    }
+
+    let processorType
+    try{
+        processorType = processorTypes[processorTypeStr]
+    } catch (e) {
+        Log.infoTag("v2logic","[ERROR] Invalid processor type")
+        Vars.ui.showInfoPopup("[ERROR] Invalid processor type", 1, 1, 1, 1, 1, 1)
+        return
+    }
+    return processorType
+}
+
+/*
+
 function placeCryo(centerPos) {
     let offset = -2
 
@@ -148,24 +133,35 @@ function placeCryo(centerPos) {
     }
 }
 
-function getProcessorType(processorTypeStr) {
-    //    No modded processor support, sad
-    let processorTypes = {
-        microProcessor: {block: Blocks.microProcessor, size: 1, squishX: 0, squishY: 0, range: 10},
-        logicProcessor: {block: Blocks.logicProcessor, size: 2, squishX: 0, squishY: 0, range: 22},
-        hyperProcessor: {block: Blocks.hyperProcessor, size: 4, squishX: 0.5, squishY: 1, range: 42},
-        worldProcessor: {block: Blocks.worldProcessor, size: 1, squishX: 0, squishY: 0, range: Vars.world.width / 2}
-    }
+function defineDisplayPositionAndOffset(x, y, size) {
+    let newPosition = new Vec2(x % size, y % size)
+    let displayOffset = new Vec2(Math.floor(x / size), Math.floor(y / size))
 
-    let processorType
-    try{
-        processorType = processorTypes[processorTypeStr]
-    } catch (e) {
-        Log.infoTag("v2logic","[ERROR] Invalid processor type")
-        Vars.ui.showInfoPopup("[ERROR] Invalid processor type", 1, 1, 1, 1, 1, 1)
-        return
-    }
-    return processorType
+    return {displayOffset: displayOffset, x: newPosition.x, y: newPosition.y}
+}
+
+function checkTiles(x, y, size) {
+    let isOdd = (size % 2);
+    let gutter = (size - isOdd) / 2;
+    let startingPoint = new Vec2(x - gutter, y - gutter);
+
+    if (!isOdd) {
+        startingPoint.add(1, 1)
+    };
+
+    let offset = new Vec2(0, 0);
+    for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+            let build = Vars.world.build(startingPoint.x + offset.x, startingPoint.y + offset.y);
+            let tile = Vars.world.tile(startingPoint.x + offset.x, startingPoint.y + offset.y);
+            if (build != null) {
+                return true;
+            };
+            offset.y += 1;
+        };
+        offset.y = 0;
+        offset.x += 1;
+    };
 }
 
 function placeWalls(startingPosition, processorTypeStr) {
@@ -258,27 +254,26 @@ function defineConfigLinks(startingPosition) {
     return configLinks
 }
 
+function mulberry32(a) {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+
+*/
+
 // ---- logging TODO ---- //
 
 function flushLog(filename, logs) {}
 
 module.exports = {
-    mulberry32: mulberry32,
-    defineConfigLinks: defineConfigLinks,
-    defineMainLinks: defineMainLinks,
-    placeStartingBlocks: placeStartingBlocks,
-    placeWalls: placeWalls,
     getProcessorType: getProcessorType,
-    placeCryo: placeCryo,
     dist: dist,
     spiral: spiral,
-    checkTiles: checkTiles,
     defineFrameSize: defineFrameSize,
     placeProcessor: placeProcessor,
-    placeBlock: placeBlock,
-    defineDisplayPositionAndOffset: defineDisplayPositionAndOffset,
-    
-
+    placeBlock: placeBlock,    
 }
 
     

@@ -1,35 +1,21 @@
 /*
 TODO:
-    CURRENT: MAIN FUNCTION, ITS NOT GOOD, TOO MANY ARGS 
-            - REWRITE RENDERER:
-                ADD PROCESSORS PER FRAME ARGS:
-                    instead of placing processors every cycle, create processor identities with undefined position values. place them afterwards using spiral
-
-            - Clean up code.
-
-        CURRENT: 
-        Successfully generated mlog code for the cores [DONE]
-                - Now i need to place the processor cores with the code [DONE]
-             
-            CURRENT: [DONE]
-            Graphical processors successfully placed 
-                - link the processors to a display and the necessary memcells {DONE}
-                - debug if it actually works [DONE]
-            
-            CURRENT: Optimise the video, etc
-                - pixel grouping, compression, etc
-                - remove redundant draw colors and draw flushes [WIP]
-                - add refreshesPerSecond functionality
-
+    TODO:
+    - pixel grouping, compression, etc
+    - remove redundant draw colors and draw flushes [WIP]
+    - add refreshesPerCycle functionality
+                    
+    LATER: 
+    - Add instructions on how to use the config processor in a message block beside it
 ISSUES:
-
-    CURRENT ISSUES:
+    ISSUES:
         - The graphics processors are drawing even when the switch is turned off
         - Unoptimised
-        - lots of crust on high ipt
-
-    FIXED ISSUES:
+        - lots of crust on high ipt and low fps
         - The video is extremely buggy, the monkey is drawn and is visible on some frames but most of the time its just a mess. [FIXED, turns out i set the width and height to x + 1 and y + 1 respectively, oopsies]
+        - Lots of hardcoding
+
+    FIXED:
         - Somethings up with how the frames are generated (last few frames arent being generated for some reason) [FIXED]
           Its probably due to the distribution 
           or maybe the last few cores arent being generated because the loop ends and the frames are still within threshold
@@ -74,7 +60,13 @@ function loadAnimation (name) {
     } catch (e) {
         Log.infoTag("v2logic", e)
     }
-    return {animation: animation, header: header, totalBatches: totalBatches, name: name}
+    return {
+        animation: animation, 
+        header: header, 
+        totalBatches: 
+        totalBatches, 
+        name: name
+    }
 }
 
 function createProcessorIdentity(position, type, code, links) {
@@ -104,23 +96,28 @@ function generateGraphicProcessors (commandInfo, animationData) {
 
     let size = functions.defineFrameSize(animation[0].seq[0])
     const displaySize = 180
-    //const offsetOneMult = new Vec2((size.x + 1) / size.x, (size.y + 1) / size.y)    //    Multiply pixels by this so that it fits the display
-    //const displayAmount = new Vec2(Math.ceil((size.x * scale) / displaySize), Math.ceil((size.y * scale) / displaySize))
+    const offsetOneMult = new Vec2((size.x + 1) / size.x, (size.y + 1) / size.y)    //    Multiply pixels by this so that it fits the display
+    const displayAmount = new Vec2(Math.ceil((size.x * scale) / displaySize), Math.ceil((size.y * scale) / displaySize))
 
     // unhardcode cores
-    let cores = 16
+    const cores = 36
 
-    const drawBufferSize = 255
+    const drawBufferSize = 256
+    const maxDrawsPerTick = 1024
     const maxInstructionsPerProcessor = 900
+    const cell1IndexOffset = 3
+    const maxProcessorsPerFrame = Math.ceil(animation[0].seq[0].length / maxInstructionsPerProcessor) + cores
     
     let globalFrame = 0
     let currentProcessor = 0
+    let currentFrameProcessor = 0
 
     let coreData = {
         processorCode: [],
         processorFrame: [],
         lines: [],
         drawCalls: [],
+        drawCallsPerTick: [],
         drawColourCalls: [],
         batchNumber: [],
         isAlreadyFlushed: [],
@@ -133,6 +130,7 @@ function generateGraphicProcessors (commandInfo, animationData) {
         coreData.lines[i] = 0
         coreData.batchNumber[i] = 0
         coreData.drawCalls[i] = 0
+        coreData.drawCallsPerTick[i] = 0
         coreData.drawColourCalls[i] = 0
         coreData.isAlreadyFlushed[i] = false
         coreData.startFrame[i] = 0
@@ -145,19 +143,23 @@ function generateGraphicProcessors (commandInfo, animationData) {
             // unhardcode name after multi display
             writeFlush("display1")
         }
-
+        
+        coreData.processorCode[coreIndex] += "write 1  cell1 " + "_PROCESSOR_MEMORY_INDEX_" + "\n"
         coreData.processorCode[coreIndex] += "\nread frame cell1 0" + "\n"
         coreData.processorCode[coreIndex] += "jump _NEXTLABEL_ notEqual frame _FRAME_".replace("_FRAME_", globalFrame)
                                                                                 .replace("_NEXTLABEL_", "LABEL" + (coreData.processorFrame[coreIndex] + 1)) + "\n"
-        coreData.processorCode[coreIndex] += "write " + coreData.batchNumber[coreIndex] + " cell1 1" + "\n"
 
-
-        // replace the final jump LABEL# to LABEL0                                
+        // Replaces the final jump LABEL# to LABEL0 so that the pointer loops back to the start                   
         coreData.processorCode[coreIndex] = coreData.processorCode[coreIndex].replace(new RegExp("LABEL" + (coreData.processorFrame[coreIndex] + 1), "g"), "LABEL0")
+
+        coreData.processorCode[coreIndex] = coreData.processorCode[coreIndex]
+        .replace(/_PROCESSOR_MEMORY_INDEX_/g, (currentFrameProcessor + cell1IndexOffset))
 
         if (config.debugMode) {
             let prevDebug = Vars.tree.get("logs/mlogs.txt").readString() + "\n"
             Vars.tree.get("logs/mlogs.txt").writeString(prevDebug + 
+
+                // Debug header
                 "\nCURRPROCESSOR " + currentProcessor + 
                 " ProcessorType: " + processorType.block + 
                 " Core: " + coreIndex + 
@@ -165,24 +167,29 @@ function generateGraphicProcessors (commandInfo, animationData) {
                 " FrameCount: " + ((globalFrame - coreData.startFrame[coreIndex]) + 1) +
                 " StartFrame: " + coreData.startFrame[coreIndex] +
                 " EndFrame: " + globalFrame +
-                " FinalProcessorFrame: " + coreData.processorFrame[coreIndex] + "\n"
-                + "```{mlog}" 
-                + coreData.processorCode[coreIndex]) // the mlog
-                + "```"
+                " FinalProcessorFrame: " + coreData.processorFrame[coreIndex] + 
+                " Frame Processor Number: " + currentFrameProcessor + 
+                "\n" +
+
+                // Mlog script
+                coreData.processorCode[coreIndex])
         }
 
         processorIdentities.push(createProcessorIdentity(Vec2(0, 0),  processorType.block, coreData.processorCode[coreIndex], mainLinks))
         coreData.processorFrame[coreIndex] = 0
         coreData.lines[coreIndex] = 0
-        coreData.processorCode[coreIndex] = "\n" + mlogCodes.frameHead
+        coreData.processorCode[coreIndex] = "\n" + mlogCodes.frameHead.join("\n")
             .replace(/_PREVLABEL_/g, "LABEL" +      coreData.processorFrame[coreIndex])
             .replace(/_NEXTLABEL_/g, "LABEL" +     (coreData.processorFrame[coreIndex] + 1))
             .replace(/_BATCH_/g,                       coreData.batchNumber[coreIndex])
             .replace(/_FINISHEDLABEL_/g, "FINISH" + coreData.processorFrame[coreIndex])
             .replace(/_LOCK1LABEL_/g, "LOCK1" +     coreData.processorFrame[coreIndex])
-            .replace(/_FRAME_/g, globalFrame) + "\n"
+            .replace(/_LOCK2LABEL_/g, "LOCK2" +     coreData.processorFrame[coreIndex])
+            .replace(/_FRAME_/g, globalFrame)
+            + "\n"        
 
         currentProcessor += 1
+        currentFrameProcessor += 1
         coreData.batchNumber[coreIndex] += 1
     }
 
@@ -193,7 +200,8 @@ function generateGraphicProcessors (commandInfo, animationData) {
         // for every frame
         for (let f = 0; f < currentBatch.batchSize; f++) {
 
-            let frameDrawCalls = 0;
+            let frameDrawCalls = 0
+            currentFrameProcessor = 0
 
             // reset batchnumbers
             for (let b = 0; b < cores; b++) {
@@ -203,7 +211,7 @@ function generateGraphicProcessors (commandInfo, animationData) {
             let currentFrame = currentBatch.seq[f]
             let pixelsPerCore = Math.floor(currentFrame.length / cores)
 
-            print(globalFrame + " " + pixelsPerCore)
+            // print(globalFrame + " " + pixelsPerCore)
 
             let framePixelIndex = 0
 
@@ -211,11 +219,10 @@ function generateGraphicProcessors (commandInfo, animationData) {
             for (let c = 0; c < cores; c++) {
 
                 function writeFlush(displayNameString) {
+                    //coreData.processorCode[c] += "wait " + ((1 / 60) * processorsPerFrame) + "\n" //unhardcode tickspeed
                     coreData.processorCode[c] +=  "drawflush " + displayNameString + "\n"
                     coreData.isAlreadyFlushed[c] = true
-                    coreData.lines[c] += 1
-                    coreData.drawCalls[c] = 0
-                    frameDrawCalls = 0
+                    coreData.lines[c] += 2
                 }
 
                 let processorPixelCount = 0
@@ -231,19 +238,26 @@ function generateGraphicProcessors (commandInfo, animationData) {
                     writeFlush("display1")
                 }
 
-                coreData.processorCode[c] += "\n" + mlogCodes.frameHead.replace(/_PREVLABEL_/g, "LABEL" + coreData.processorFrame[c])
+                coreData.processorCode[c] += "write 1  cell1 " + "_PROCESSOR_MEMORY_INDEX_" + "\n"
+
+                coreData.processorCode[c] += "\n" + mlogCodes.frameHead.join("\n")
+                .replace(/_PREVLABEL_/g, "LABEL" + coreData.processorFrame[c])
                 .replace(/_NEXTLABEL_/g, "LABEL" + (coreData.processorFrame[c] + 1))
                 .replace(/_BATCH_/g, coreData.batchNumber[c])
                 .replace(/_FINISHEDLABEL_/g, "FINISH" + coreData.processorFrame[c])
                 .replace(/_LOCK1LABEL_/g, "LOCK1" + coreData.processorFrame[c])
-                .replace(/_FRAME_/g, globalFrame) + "\n"
-
+                .replace(/_LOCK2LABEL_/g, "LOCK2" + coreData.processorFrame[c])
+                .replace(/_FRAME_/g, globalFrame)
+                 + "\n"
                 
                 // unhardcode name after multi display
                 writeFlush("display1")
 
+                // wait 1 tick
+                coreData.processorCode[c] += "wait " + (0.000000001) + "\n"
+
                 // unhardcode
-                coreData.lines[c] += 27
+                coreData.lines[c] += mlogCodes.frameHead.length
 
                 // ----------------------------------------------
 
@@ -268,20 +282,38 @@ function generateGraphicProcessors (commandInfo, animationData) {
 
 
                     coreData.processorCode[c] += "draw color " + pixelColour[0] + " " + pixelColour[1] + " " + pixelColour[2] + " 255" + "\n"
-                                                    +  "draw rect " + (pixelPosition.x * scale) + " " + (pixelPosition.y * scale) + " " + (scale) + " " + (scale) + "\n"
+                                              +  "draw rect " + (pixelPosition.x * scale) + " " + (pixelPosition.y * scale) + " " + (scale) + " " + (scale) + "\n"
                                                     
                                                     
                     // unhardcode
                     coreData.lines[c]  += 2
                     coreData.drawCalls[c] += 2
-                    frameDrawCalls += 2
+                    //frameDrawCalls += 2
 
-                    if (frameDrawCalls > (drawBufferSize / cores)) {
+                    print(maxProcessorsPerFrame)
+
+                    if (coreData.drawCalls[c] >= drawBufferSize / maxProcessorsPerFrame)
+                     {
                         // unhardcode name after multi display
                         writeFlush("display1")
-                        frameDrawCalls = 0
+
+                        coreData.drawCalls[c] = 0
                     }
 
+                    if (coreData.drawCallsPerTick[c] >= maxDrawsPerTick / maxProcessorsPerFrame) {
+
+                        // wait 1 tick
+                        coreData.processorCode[c] += "wait " + (0.000000001) + "\n"
+                        coreData.drawCallsPerTick[c] = 0
+                    }
+
+                    /*
+                    if (coreData.drawCalls[c] >= drawBufferSize) {
+                        // unhardcode name after multi display
+                        writeFlush("display1")
+                        coreData.drawCalls[c] = 0
+                    }
+                    */
 
                     // for testing only ------------------------ #
                     
@@ -516,7 +548,7 @@ function main () {
             if (blocks[setCoords.y][setCoords.x] != 0) {
                 retry = true
             } else {
-                // unhardcode                                                 make this possible for multiblock sized processors, currently it only works for 1x1
+                // unhardcode         make this possible for multiblock sized processors, currently it only works for 1x1
                 retry = false
             }
         } else (
