@@ -3,6 +3,6 @@ name: "video-to-logic-java"
 author: "ElectricGun"
 main: "mod.Main"
 description: ""
-version: 1.0
+version: 0.0.0
 minGameVersion: 145
 java: true
