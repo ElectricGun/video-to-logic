@@ -3,6 +3,6 @@ name: "video-to-logic-java"
 author: "ElectricGun"
 main: "mod.Main"
 description: "[red]THIS MOD IS WORK IN PROGRESS\nMAY NOT WORK ON ANDROID!\n[white]How to use:\n1: Click the frog button on the top left\n2: Open a video or image file\n3: Alter the settings to your desires\n4: Execute\n5: Check your schematics"
-version: 0.1.0
+version: 0.1.1
 minGameVersion: 145
 java: true
