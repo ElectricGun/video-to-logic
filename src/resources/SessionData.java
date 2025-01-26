@@ -39,6 +39,7 @@ public class SessionData {
         try {
             // assert that avutil is loaded
             Loader.load(org.bytedeco.ffmpeg.global.avutil.class);
+            UI.errorDialog.hide();
         } catch (Throwable ee) {
             UI.errorDialog.show();
             throw new RuntimeException(ee);
