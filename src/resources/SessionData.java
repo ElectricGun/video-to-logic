@@ -3,15 +3,19 @@ package resources;
 import arc.ApplicationListener;
 import arc.Core;
 import arc.files.Fi;
+import org.bytedeco.javacpp.Loader;
 import processes.MediaProcessThread;
 import processes.ProcessThread;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
+import ui.UI;
+import ui.dialogs.ErrorDialog;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class SessionData {
+
     private static Fi selectedFile;
     private static int mediaFrameCount;
     private static int mediaWidth;
@@ -29,6 +33,16 @@ public class SessionData {
 
     public static int getMediaHeight() {
         return mediaHeight;
+    }
+
+    public static void assertCorrectPlatform() throws RuntimeException {
+        try {
+            // assert that avutil is loaded
+            Loader.load(org.bytedeco.ffmpeg.global.avutil.class);
+        } catch (Throwable ee) {
+            UI.errorDialog.show();
+            throw new RuntimeException(ee);
+        }
     }
 
 
@@ -70,6 +84,7 @@ public class SessionData {
             }
         });
     }
+
 
     public static boolean isImage () throws IllegalArgumentException {
         List<String> imageExtensions = Arrays.asList(

@@ -1,22 +1,24 @@
 package resources;
 
+import arc.Core;
 import arc.util.Log;
+import arc.util.OS;
 import arc.util.serialization.JsonReader;
 import arc.util.serialization.JsonValue;
 import arc.util.serialization.Jval;
+import mindustry.ui.dialogs.BaseDialog;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public class ModVars {
     public static String displayName, name, author, description, version, minGameVersion;
-
     public static void infoTag(Object object) {
         Log.infoTag(name, String.valueOf(object));
     }
 
-    public static void load() {
-
+    static {
         try {
             InputStream modJsonStream = ModVars.class.getClassLoader().getResourceAsStream("mod.hjson");
 
@@ -45,7 +47,4 @@ public class ModVars {
             ModVars.infoTag(String.valueOf(e));
         }
     }
-
-
-
 }

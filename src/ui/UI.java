@@ -3,6 +3,8 @@ package ui;
 import arc.Core;
 import arc.scene.style.TextureRegionDrawable;
 import arc.scene.ui.layout.Table;
+import resources.SessionData;
+import ui.dialogs.ErrorDialog;
 
 import static resources.Dialogs.*;
 
@@ -10,8 +12,13 @@ import static resources.Dialogs.*;
 import static mindustry.Vars.ui;
 
 public class UI {
+    public static ErrorDialog errorDialog;
+
     public static void setupUI()  {
+
         setupButtons();
+        errorDialog = new ErrorDialog("@video-to-logic-unsupported");
+
     }
 
     private static void setupButtons() {
@@ -35,7 +42,12 @@ public class UI {
             }).size(size);
 
             t.clicked(() -> {
-                testDialog.show();
+                try {
+                    SessionData.assertCorrectPlatform();
+                    testDialog.show();
+                } catch (Exception e) {
+                    UI.errorDialog.show();
+                }
             });
         });
     }
