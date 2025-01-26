@@ -13,11 +13,6 @@ import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.opencv.opencv_core.Mat;
 import processes.MediaProcessThread;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.List;
-
-
 public class Processes {
 
     public static MediaProcessThread runProcessVideoThread(String pathToVideo, MediaProcessConfig mediaProcessConfig) {

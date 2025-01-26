@@ -36,7 +36,7 @@ dependencies{
     compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
     
     annotationProcessor "com.github.Anuken:jabel:$jabelVersion"
-    
+
     implementation("org.bytedeco:javacv-platform:1.5.11")
             {
         exclude group: "org.bytedeco", module: "artoolkitplus"
@@ -72,7 +72,7 @@ configurations.all{
     }
 }
 
-// todo remove copy pastes (laziness + no idea what im doing)
+// todo remove copy pastes (laziness)
 def platforms = ["windows", "macos", "linux", "ios-x86", "ios-arm64", "android-arm64", "android-x86"]
 
 task jarPlatformBase(type: Jar){
@@ -132,7 +132,7 @@ task jarPlatform(type: Jar){
 }
 
 task jarLinux(type: Jar) {
-    archiveFileName.set("${base.archivesBaseName}Desktop-linux.jar")
+    archiveFileName.set("${base.archivesBaseName}-linux.jar")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     from {
@@ -157,7 +157,7 @@ task jarLinux(type: Jar) {
 }
 
 task jarWindows(type: Jar) {
-    archiveFileName.set("${base.archivesBaseName}Desktop-windows.jar")
+    archiveFileName.set("${base.archivesBaseName}-windows.jar")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     from {
@@ -182,7 +182,7 @@ task jarWindows(type: Jar) {
 }
 
 task jarMac(type: Jar) {
-    archiveFileName.set("${base.archivesBaseName}Desktop-mac.jar")
+    archiveFileName.set("${base.archivesBaseName}-mac.jar")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     from {
@@ -268,11 +268,17 @@ task jarAndroid(type: Jar){
     }
 }
 
-task deploy(){
+task deployVersions(){
     dependsOn jarLinux
     dependsOn jarWindows
-    // android is unsupported for now, weird issue regarding ffmpeg native libraries
+    // android is unsupported for now, due to issue regarding ffmpeg native libraries
 //    dependsOn jarAndroid
+    dependsOn jarMac
+}
+
+task deploy() {
+    dependsOn jarLinux
+    dependsOn jarWindows
     dependsOn jarMac
     dependsOn jarPlatform
 }

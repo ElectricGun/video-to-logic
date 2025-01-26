@@ -7,7 +7,6 @@ import processes.MediaProcessThread;
 import processes.ProcessThread;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

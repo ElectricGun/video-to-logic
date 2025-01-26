@@ -153,6 +153,9 @@ public class MediaProcessThread extends ProcessThread {
                         }
                         if (mlogVideoFrame == null) {
                             mlogVideoFrame = new MlogVideoFrame(display, LExecutor.maxInstructions, LExecutor.maxGraphicsBuffer, maxImageLength);
+                            if (mediaProcessConfig.processor == Blocks.worldProcessor) {
+                                mlogVideoFrame.newInstruction("setrate 250");
+                            }
                         }
 
                         int currentMlogFrames = mlogFrameCounts.getOrDefault(mlogVideoFrame, 0);
@@ -244,7 +247,6 @@ public class MediaProcessThread extends ProcessThread {
             }
         } finally {
             try {
-                Block processorType = Blocks.microProcessor;
                 Block switchType = Blocks.switchBlock;
 
                 Vec2 startPosition = new Vec2(0, 0);
@@ -334,12 +336,12 @@ public class MediaProcessThread extends ProcessThread {
                             .newInstruction("write i2 cell1 0")
                     ;
 
-                    LogicBlock.LogicBuild clockProc = (LogicBlock.LogicBuild) processorType.newBuilding();
-                    clockProc.tile = new Tile((int) clockPos.x, (int) clockPos.y, Blocks.sand, Blocks.air, processorType);
+                    LogicBlock.LogicBuild clockProc = (LogicBlock.LogicBuild) mediaProcessConfig.processor.newBuilding();
+                    clockProc.tile = new Tile((int) clockPos.x, (int) clockPos.y, Blocks.sand, Blocks.air, mediaProcessConfig.processor);
                     clockProc.links.add(new LogicBlock.LogicLink((int) cell1Pos.x, (int) cell1Pos.y, memcell1, true));
                     clockProc.links.add(new LogicBlock.LogicLink((int) switch1Pos.x, (int) switch1Pos.y, switch1, true));
                     clockProc.updateCode(clockMlog.getCode());
-                    stiles.add(new Schematic.Stile(processorType, (int) clockPos.x, (int) clockPos.y, clockProc.config(), (byte) 0));
+                    stiles.add(new Schematic.Stile(mediaProcessConfig.processor, (int) clockPos.x, (int) clockPos.y, clockProc.config(), (byte) 0));
                 }
 
                 // display
@@ -354,13 +356,13 @@ public class MediaProcessThread extends ProcessThread {
                     MlogVideoFrame mlogImage = mlogImageMap.get(key);
                     Vec2 position = new Vec2(key.x + offsetX, key.y + offsetY);
 
-                    LogicBlock.LogicBuild configBlock = (LogicBlock.LogicBuild) processorType.newBuilding();
-                    configBlock.tile = new Tile((int) position.x, (int) position.y, Blocks.sand, Blocks.air, processorType);
+                    LogicBlock.LogicBuild configBlock = (LogicBlock.LogicBuild) mediaProcessConfig.processor.newBuilding();
+                    configBlock.tile = new Tile((int) position.x, (int) position.y, Blocks.sand, Blocks.air, mediaProcessConfig.processor);
                     configBlock.links.add(new LogicBlock.LogicLink(displayPosX + offsetX, displayPosY + offsetY, display, true));
                     if (cell1Pos != null)
                         configBlock.links.add(new LogicBlock.LogicLink((int) cell1Pos.x + offsetX, (int) cell1Pos.y + offsetY, memcell1, true));
                     configBlock.updateCode(mlogImage.getCode());
-                    stiles.add(new Schematic.Stile(processorType, (int) position.x, (int) position.y, configBlock.config(), (byte) 0));
+                    stiles.add(new Schematic.Stile(mediaProcessConfig.processor, (int) position.x, (int) position.y, configBlock.config(), (byte) 0));
                 }
 
                 StringMap tags = new StringMap();

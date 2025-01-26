@@ -1,23 +1,24 @@
 package ui.tables;
 
+import arc.func.Prov;
 import arc.math.geom.Vec2;
-import arc.scene.ui.Label;
-import arc.scene.ui.ScrollPane;
-import arc.scene.ui.TextButton;
-import arc.scene.ui.TextField;
+import arc.scene.ui.*;
 import arc.scene.ui.layout.Cell;
 import arc.scene.ui.layout.Table;
 import datatypes.configs.MediaProcessConfig;
 import mindustry.Vars;
+import mindustry.content.Blocks;
 import mindustry.gen.Tex;
 import mindustry.mod.Mod;
 import mindustry.ui.Styles;
+import mindustry.world.Block;
 import resources.ModVars;
 import resources.SessionData;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static mindustry.gen.Groups.label;
 import static resources.Processes.runProcessVideoThread;
 import static resources.SessionData.*;
 import static resources.SessionData.getSelectedFile;
@@ -34,17 +35,21 @@ public class InterfaceTable extends BaseTable {
         kPixelStepY = "pixel-step-y",
         kMaxThreads = "max-threads",
         kNewSizeX = "new-size-x",
-        kNewSizeY = "new-size-y"
+        kNewSizeY = "new-size-y",
+        kProcessors = "processors"
                 ;
 
     // Input fields. Uses a map for ease of scalability
     protected Map<String, TextField> inputFieldMap = new HashMap<>();
+    protected Map<String, Button> stateFieldsMap = new HashMap<>();
+
     // Save the values because the table refreshes a lot
     protected Map<String, String> inputFieldValues = new HashMap<>();
     // todo
     protected Map<String, String> inputFieldDefaultValues = new HashMap<>();
-
     protected boolean isImage = false;
+
+    protected final Block[] processors = new Block[]{Blocks.microProcessor, Blocks.worldProcessor};
 
     public void setInputFieldValue(String textFieldKey, String textFieldValue) throws IllegalArgumentException {
         if (!inputFieldMap.containsKey(textFieldKey)) throw new IllegalArgumentException("Text field" + textFieldKey + " does not exist!");
@@ -109,6 +114,32 @@ public class InterfaceTable extends BaseTable {
             }
         });
         return inputField;
+    }
+
+    protected Cell<Table> newStatesField(String key, Table element, String labelName, Prov<CharSequence> labelProv, int labelWidth, int labelHeight, int maxValue ) {
+        Button button = new Button();
+        Label label = new Label(labelProv);
+        button.add(label);
+
+        stateFieldsMap.put(key, button);
+
+        if (!inputFieldValues.containsKey(key))
+            inputFieldValues.put(key, "0");
+
+        button.clicked(() -> {
+            int inputValue = ((int) Float.parseFloat(inputFieldValues.get(key))) + 1;
+            if (inputValue > maxValue) {
+                inputValue = 0;
+            }
+            ModVars.infoTag(maxValue);
+            inputFieldValues.put(key, String.valueOf(inputValue));
+        });
+
+        return element.table(t -> {
+            t.add(new Label(labelName)).left().width(labelWidth).height(labelHeight);
+            t.add(button).left().growX().height(labelHeight);
+            t.setBackground(Tex.button);
+        });
     }
 
     public void resetToDefaults() {
@@ -218,6 +249,7 @@ public class InterfaceTable extends BaseTable {
                     (int) Float.parseFloat((inputFieldValues.get(kNewSizeX))),
                     (int) Float.parseFloat((inputFieldValues.get(kNewSizeY))));
             frameConfig.isImage = isImage;
+            frameConfig.processor = processors[(int) Float.parseFloat(inputFieldValues.get(kProcessors))];
 
             ModVars.infoTag(frameConfig);
             runProcessVideoThread(getSelectedFile().absolutePath(), frameConfig);
@@ -260,6 +292,17 @@ public class InterfaceTable extends BaseTable {
         newIntInputField(kPixelStepX, mainInterfaceTable, "Pixel Step X",200, 50, 1, getMediaWidth()).left().width(400).pad(10).row();
         newIntInputField(kPixelStepY, mainInterfaceTable, "Pixel Step Y",200, 50, 1, getMediaHeight()).left().width(400).pad(10).row();
         newIntInputField(kMaxThreads, mainInterfaceTable, "Max Threads",200, 50, 1, 128).left().width(400).pad(10).row();
+        Prov<CharSequence> prov;
 
+        prov = () ->
+        {
+            try {
+                return processors[(int) Float.parseFloat(inputFieldValues.get(kProcessors))].toString();
+            } catch (Exception e) {
+                return "";
+            }
+        };
+
+        newStatesField(kProcessors, mainInterfaceTable, "Processors",prov, 200, 50, processors.length - 1).left().width(400).pad(10).row();
     }
 }
