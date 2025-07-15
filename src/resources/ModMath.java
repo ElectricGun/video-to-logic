@@ -1,6 +1,6 @@
 package resources;
 
-import arc.math.geom.Vec2;
+import arc.math.geom.*;
 
 public class ModMath {
     public static float calculateSimilarity() {

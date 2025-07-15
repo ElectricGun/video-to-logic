@@ -1,6 +1,6 @@
 package ui.tables;
 
-import arc.scene.ui.layout.Table;
+import arc.scene.ui.layout.*;
 
 public class BaseTable extends Table {
 

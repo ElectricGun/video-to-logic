@@ -1,17 +1,13 @@
 package resources;
 
-import arc.graphics.Color;
-import arc.math.geom.Vec3;
-import arc.util.Threads;
-import datatypes.ColorNode;
-import datatypes.configs.FrameConfig;
-import datatypes.SimpleQuadTree;
-import datatypes.configs.MediaProcessConfig;
-import org.bytedeco.ffmpeg.avformat.AVFormatContext;
-import org.bytedeco.ffmpeg.global.avformat;
-import org.bytedeco.javacpp.BytePointer;
-import org.bytedeco.opencv.opencv_core.Mat;
-import processes.MediaProcessThread;
+import arc.graphics.*;
+import arc.math.geom.*;
+import arc.util.*;
+import datatypes.*;
+import datatypes.configs.*;
+import org.bytedeco.javacpp.*;
+import org.bytedeco.opencv.opencv_core.*;
+import processes.*;
 
 public class Processes {
 

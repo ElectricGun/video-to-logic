@@ -1,11 +1,10 @@
 package ui.dialogs;
 
 import arc.scene.ui.*;
-import arc.scene.ui.layout.Table;
-import mindustry.gen.Tex;
-import mindustry.ui.dialogs.BaseDialog;
-import ui.tables.InterfaceTable;
-import ui.tables.ProcessesTable;
+import arc.scene.ui.layout.*;
+import mindustry.gen.*;
+import mindustry.ui.dialogs.*;
+import ui.tables.*;
 
 import static resources.SessionData.*;
 

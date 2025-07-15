@@ -1,18 +1,12 @@
 package resources;
 
-import arc.ApplicationListener;
-import arc.Core;
-import arc.files.Fi;
-import org.bytedeco.javacpp.Loader;
-import processes.MediaProcessThread;
-import processes.ProcessThread;
-import org.bytedeco.javacv.FFmpegFrameGrabber;
-import ui.UI;
-import ui.dialogs.ErrorDialog;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import arc.*;
+import arc.files.*;
+import org.bytedeco.javacpp.*;
+import processes.*;
+import org.bytedeco.javacv.*;
+import ui.*;
+import java.util.*;
 
 public class SessionData {
 

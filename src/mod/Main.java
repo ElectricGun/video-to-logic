@@ -1,16 +1,12 @@
 package mod;
 
 import arc.*;
-import arc.scene.ui.Dialog;
-import arc.util.OS;
-import mindustry.ui.dialogs.BaseDialog;
-import org.bytedeco.javacpp.Loader;
 import resources.Dialogs;
 import mindustry.game.EventType.*;
 import mindustry.mod.*;
-import resources.ModVars;
-import resources.SessionData;
-import ui.UI;
+import resources.*;
+import resources.*;
+import ui.*;
 
 import static resources.SessionData.assertCorrectPlatform;
 

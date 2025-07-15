@@ -1,8 +1,8 @@
 package ui.dialogs;
 
-import arc.Core;
-import arc.util.OS;
-import mindustry.ui.dialogs.BaseDialog;
+import arc.*;
+import arc.util.*;
+import mindustry.ui.dialogs.*;
 
 public class ErrorDialog extends BaseDialog {
     public ErrorDialog(String title) {

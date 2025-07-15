@@ -1,27 +1,20 @@
 package ui.tables;
 
-import arc.func.Prov;
-import arc.math.geom.Vec2;
+import arc.func.*;
+import arc.math.geom.*;
 import arc.scene.ui.*;
-import arc.scene.ui.layout.Cell;
-import arc.scene.ui.layout.Table;
-import datatypes.configs.MediaProcessConfig;
-import mindustry.Vars;
-import mindustry.content.Blocks;
-import mindustry.gen.Tex;
-import mindustry.mod.Mod;
-import mindustry.ui.Styles;
-import mindustry.world.Block;
-import resources.ModVars;
-import resources.SessionData;
+import arc.scene.ui.layout.*;
+import datatypes.configs.*;
+import mindustry.*;
+import mindustry.content.*;
+import mindustry.gen.*;
+import mindustry.ui.*;
+import mindustry.world.*;
+import resources.*;
+import java.util.*;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static mindustry.gen.Groups.label;
-import static resources.Processes.runProcessVideoThread;
+import static resources.Processes.*;
 import static resources.SessionData.*;
-import static resources.SessionData.getSelectedFile;
 
 public class InterfaceTable extends BaseTable {
 

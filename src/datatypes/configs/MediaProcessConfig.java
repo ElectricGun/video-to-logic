@@ -1,8 +1,8 @@
 package datatypes.configs;
 
-import mindustry.world.Block;
+import mindustry.world.*;
 
-public class MediaProcessConfig extends FrameConfig{
+public class MediaProcessConfig extends FrameConfig {
     public int startFrame;
     public int endFrame;
     public int frameStep = 1;

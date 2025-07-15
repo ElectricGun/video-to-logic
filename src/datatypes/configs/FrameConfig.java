@@ -1,6 +1,6 @@
 package datatypes.configs;
 
-import arc.math.geom.Vec2;
+import arc.math.geom.*;
 
 public class FrameConfig {
     public float tolerance = 0f;

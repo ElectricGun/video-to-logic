@@ -1,16 +1,9 @@
 package resources;
 
-import arc.Core;
-import arc.util.Log;
-import arc.util.OS;
-import arc.util.serialization.JsonReader;
-import arc.util.serialization.JsonValue;
-import arc.util.serialization.Jval;
-import mindustry.ui.dialogs.BaseDialog;
+import arc.util.*;
+import arc.util.serialization.*;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 
 public class ModVars {
     public static String displayName, name, author, description, version, minGameVersion;

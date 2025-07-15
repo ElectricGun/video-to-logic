@@ -1,35 +1,26 @@
 package processes;
 
-import arc.graphics.Color;
-import arc.math.geom.Vec2;
-import arc.struct.Seq;
-import arc.struct.StringMap;
-import datatypes.ColorNode;
-import datatypes.SimpleQuadTree;
-import datatypes.configs.MediaProcessConfig;
-import datatypes.errors.MlogOverflowError;
-import datatypes.errors.MlogThreadOverflowError;
-import datatypes.mlog.Mlog;
-import datatypes.mlog.MlogVideoFrame;
-import mindustry.Vars;
-import mindustry.content.Blocks;
-import mindustry.game.Schematic;
-import mindustry.logic.LExecutor;
-import mindustry.world.Block;
-import mindustry.world.Tile;
-import mindustry.world.blocks.logic.LogicBlock;
-import mindustry.world.blocks.logic.SwitchBlock;
+import arc.graphics.*;
+import arc.math.geom.*;
+import arc.struct.*;
+import datatypes.*;
+import datatypes.configs.*;
+import datatypes.errors.*;
+import datatypes.mlog.*;
+import mindustry.*;
+import mindustry.content.*;
+import mindustry.game.*;
+import mindustry.logic.*;
+import mindustry.world.*;
+import mindustry.world.blocks.logic.*;
 import org.bytedeco.javacv.*;
-import org.bytedeco.opencv.global.opencv_imgcodecs;
-import org.bytedeco.opencv.opencv_core.Mat;
-import resources.Mlogs;
-import resources.ModMath;
-import resources.ModVars;
-import resources.Processes;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import org.bytedeco.opencv.global.*;
+import org.bytedeco.opencv.opencv_core.*;
+import resources.*;
+
+import java.io.*;
 import java.util.*;
-import org.bytedeco.opencv.opencv_core.Size;
+import java.util.Queue;
 
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
@@ -187,12 +178,12 @@ public class MediaProcessThread extends ProcessThread {
 
                                     if (mlogVideoFrame.getLength() >= threadLimit) {
                                         nextThread = true;
-                                        throw new MlogThreadOverflowError("Reached maximum number of pixels in thread");
+                                        throw new MlogThreadOverflowException("Reached maximum number of pixels in thread");
                                     }
                                 }
                             }
                             mlogVideoFrame.endImage();
-                        } catch (MlogOverflowError | MlogThreadOverflowError e) {
+                        } catch (MlogOverflowException | MlogThreadOverflowException e) {
                             mlogVideoFrame.endImage();
                             // ModVars.infoTag(e);
                         }

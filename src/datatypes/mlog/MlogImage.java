@@ -1,7 +1,7 @@
 package datatypes.mlog;
 
-import datatypes.errors.MlogOverflowError;
-import resources.Mlogs;
+import datatypes.errors.*;
+import resources.*;
 
 public class MlogImage extends Mlog {
 
@@ -30,8 +30,8 @@ public class MlogImage extends Mlog {
         return length >= maxImageLength;
     }
 
-    protected void addDraw(String instruction) throws MlogOverflowError {
-        if (length + 1 > maxImageLength) throw new MlogOverflowError("Maximum image length reached!");
+    protected void addDraw(String instruction) throws MlogOverflowException {
+        if (length + 1 > maxImageLength) throw new MlogOverflowException("Maximum image length reached!");
 
         if (draws + 1 > drawBufferSize) {
             drawflush();
@@ -44,7 +44,7 @@ public class MlogImage extends Mlog {
         draws++;
     }
 
-    public void color(float r, float g, float b, float a) {
+    public void color(float r, float g, float b, float a) throws MlogOverflowException {
         currentColor[0] = r;
         currentColor[1] = g;
         currentColor[2] = b;
@@ -53,16 +53,16 @@ public class MlogImage extends Mlog {
         addDraw(Mlogs.color(r, g, b, a));
     }
 
-    public void rect(float x, float y, float width, float height) {
+    public void rect(float x, float y, float width, float height) throws MlogOverflowException {
         addDraw(Mlogs.rect(x, y, width, height));
     }
 
-    public void drawflush() {
+    public void drawflush() throws MlogOverflowException {
         newInstruction(Mlogs.drawflush(display));
         draws = 0;
     }
 
-    public void endImage() {
+    public void endImage() throws MlogOverflowException {
         if (!alreadyFlushed)
             drawflush();
     }

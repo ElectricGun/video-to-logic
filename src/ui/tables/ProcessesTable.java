@@ -1,19 +1,14 @@
 package ui.tables;
 
-import arc.Events;
-import arc.scene.ui.Label;
-import arc.scene.ui.TextButton;
-import arc.scene.ui.layout.Table;
-import processes.MediaProcessThread;
-import mindustry.game.EventType;
-import mindustry.gen.Tex;
-import mindustry.ui.Styles;
-import resources.SessionData;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import arc.*;
+import arc.scene.ui.*;
+import arc.scene.ui.layout.*;
+import processes.*;
+import mindustry.game.*;
+import mindustry.gen.*;
+import mindustry.ui.*;
+import resources.*;
+import java.util.*;
 
 public class ProcessesTable extends BaseTable {
 

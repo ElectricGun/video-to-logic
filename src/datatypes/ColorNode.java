@@ -1,6 +1,6 @@
 package datatypes;
 
-import arc.graphics.Color;
+import arc.graphics.*;
 
 // datatype for quadtree compression
 public class ColorNode {

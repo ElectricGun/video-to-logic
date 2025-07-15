@@ -1,6 +1,6 @@
 package processes;
 
-import resources.ModVars;
+import resources.*;
 
 public class ProcessThread extends Thread {
     protected volatile boolean shutdown = false;

@@ -1,5 +1,7 @@
 package datatypes.mlog;
 
+import datatypes.errors.*;
+
 public class MlogVideoFrame extends MlogImage{
 
     protected boolean frameEnded = false;
@@ -12,7 +14,7 @@ public class MlogVideoFrame extends MlogImage{
         super(display, maxLength, drawBufferSize, maxImageLength);
     }
 
-    public void endFrame() {
+    public void endFrame() throws MlogOverflowException {
         if (!frameEnded) {
             frameEnded = true;
             newInstruction("end");

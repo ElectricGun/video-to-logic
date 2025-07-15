@@ -1,6 +1,6 @@
 package resources;
 
-import ui.dialogs.MainDialog;
+import ui.dialogs.*;
 
 public class Dialogs {
     public static MainDialog testDialog;

@@ -1,10 +1,10 @@
 package ui;
 
-import arc.Core;
-import arc.scene.style.TextureRegionDrawable;
-import arc.scene.ui.layout.Table;
-import resources.SessionData;
-import ui.dialogs.ErrorDialog;
+import arc.*;
+import arc.scene.style.*;
+import arc.scene.ui.layout.*;
+import resources.*;
+import ui.dialogs.*;
 
 import static resources.Dialogs.*;
 
