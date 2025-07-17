@@ -8,16 +8,25 @@ public class ErrorDialog extends BaseDialog {
     public ErrorDialog(String title) {
         super(title);
 
-        String text;
+        String text =
+        """
+        This version of Video to Logic is not supported on your device
+        Please install the[green] %s [white]or [green]Platform [white]version in the Github repository.
+        Android is NOT supported!
+        """;
 
         if (OS.isLinux) {
-            text = "This version of Video to Logic is not supported on your device\nPlease install the[green] Linux [white]or [green]Platform [white]version in the Github repository.";
+            text = String.format(text, "Linux");
         } else if (OS.isWindows) {
-            text = "This version of Video to Logic is not supported on your device\nPlease install the [green]Windows [white]or [green]Platform [white]version in the Github repository.";
+            text = String.format(text, "Windows");
         } else if  (OS.isMac) {
-            text = "This version of Video to Logic is not supported on your device\nPlease install the [green]Mac [white]or [green]Platform [white]version in the Github repository.";
+            text = String.format(text, "Mac");
         } else {
-            text = "Video to Logic is not supported on your device\nPlease use a Desktop computer, or try the [green]Platform [white]version of the mod [NOT GUARANTEED TO WORK]";
+            text = """
+        Video to Logic is not supported on your device
+        Please use a Desktop computer
+        Android is NOT supported!
+        """;
         }
 
         text += "\nOtherwise, [red]disable this mod.";
